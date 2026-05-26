@@ -1,0 +1,1659 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ระบบบันทึกผู้สัมผัสโรคพิษสุนัขบ้า รพ.แม่อาย</title>
+<script src="https://cdn.tailwindcss.com/3.4.17"></script>
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+body { font-family: 'Sarabun', sans-serif; }
+.tab-active { border-bottom: 3px solid #0d9488; color: #0d9488; font-weight: 600; }
+.tab-inactive { border-bottom: 3px solid transparent; color: #6b7280; }
+.tab-inactive:hover { color: #0d9488; }
+.field-label { display: block; font-size: 0.8rem; font-weight: 500; color: #374151; margin-bottom: 2px; }
+.field-input { width: 100%; border: 1px solid #d1d5db; border-radius: 0.375rem; padding: 0.4rem 0.6rem; font-size: 0.85rem; }
+.field-input:focus { outline: none; border-color: #0d9488; box-shadow: 0 0 0 2px rgba(13,148,136,0.1); }
+fieldset { background: #fff; border: 1px solid #e5e7eb; border-radius: 0.5rem; padding: 1rem; margin-bottom: 1rem; }
+legend { font-weight: 600; color: #0d9488; padding: 0 0.5rem; font-size: 0.95rem; }
+.vaccine-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+.vaccine-table th, .vaccine-table td { border: 1px solid #d1d5db; padding: 4px 6px; }
+.vaccine-table th { background: #f0fdfa; font-weight: 600; color: #0d9488; }
+.vaccine-table input, .vaccine-table select { width: 100%; border: none; outline: none; font-size: 0.8rem; padding: 2px; background: transparent; }
+/* Background-removal blending for logo */
+.logo-blend {
+mix-blend-mode: multiply;
+filter: contrast(1.05) brightness(1.02);
+}
+
+/* Spreadsheet Scroll Styling */
+.sheet-container::-webkit-scrollbar { width: 8px; height: 8px; }
+.sheet-container::-webkit-scrollbar-track { background: #f1f1f1; }
+.sheet-container::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+.sheet-container::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* --- A4 Print Specific Styles --- */
+.a4-page {
+width: 210mm;
+min-height: 297mm;
+margin: 0 auto;
+background: white;
+padding: 5mm 10mm; /* ปรับลดขอบซ้ายขวาและบนล่างให้เล็กลง */
+box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+.print-table { width: 100%; border-collapse: collapse; font-size: 11px; } /* ลดขนาดตัวอักษรในตารางลงเล็กน้อย */
+.print-table th, .print-table td { border: 1px solid #000; padding: 2px 4px; } /* ลดช่องว่างในตาราง */
+.print-table th { text-align: center; }
+
+.checkbox-print { font-size: 14px; line-height: 1; }
+.check-box-icon { display: inline-block; width: 12px; height: 12px; border: 1px solid #000; border-radius: 2px; margin-right: 4px; position: relative; top: 2px; }
+.check-box-icon.checked::after { content: '✔'; position: absolute; top: -3px; left: 1px; font-size: 12px; color: black; }
+.radio-box-icon { display: inline-block; width: 12px; height: 12px; border: 1px solid #000; border-radius: 50%; margin-right: 4px; position: relative; top: 2px; }
+.radio-box-icon.checked::after { content: ''; position: absolute; top: 2px; left: 2px; width: 6px; height: 6px; background: black; border-radius: 50%; }
+
+@media print {
+body { background: white; margin: 0; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+#login-panel { display: none !important; }
+header, nav, #panel-dashboard, #panel-record, #panel-search, #panel-sheet, #delete-modal { display: none !important; }
+main { padding: 0 !important; margin: 0 !important; max-width: none !important; }
+#panel-print-container { display: block !important; position: absolute; left: 0; top: 0; width: 100%; }
+.no-print { display: none !important; }
+.a4-page { width: 100%; box-shadow: none; margin: 0; padding: 0; min-height: auto; }
+@page { size: A4; margin: 4mm; } /* บีบขอบกระดาษพิมพ์ให้เหลือ 4mm */
+}
+</style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-teal-50 via-slate-50 to-cyan-50">
+
+<div id="login-panel" class="fixed inset-0 bg-gradient-to-br from-teal-800 to-cyan-900 z-[100] flex flex-col items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md relative overflow-hidden">
+        <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-teal-400 to-cyan-500"></div>
+        <div class="flex flex-col items-center mb-6">
+            <img src="โลโก้หน่วยงาน รพ.แม่อาย.jpg" alt="โลโก้ รพ.แม่อาย" class="w-32 h-32 md:w-36 md:h-36 object-contain mb-4 logo-blend drop-shadow-sm" onerror="this.style.display='none'; document.getElementById('login-logo-fallback').classList.remove('hidden');">
+            
+            <div id="login-logo-fallback" class="hidden w-24 h-24 text-teal-600 mb-4 bg-teal-50 rounded-full flex items-center justify-center shadow-sm">
+                <i data-lucide="shield-plus" class="w-12 h-12"></i>
+            </div>
+            
+            <h2 class="text-2xl font-extrabold text-gray-800 text-center">เข้าสู่ระบบ</h2>
+            <p class="text-sm text-gray-500 text-center mt-1">ระบบบันทึกผู้สัมผัสโรคพิษสุนัขบ้า รพ.แม่อาย</p>
+        </div>
+        <form id="login-form" class="space-y-5" onsubmit="performLogin(event)">
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1.5" for="login-username">ชื่อผู้ใช้งาน (Username)</label>
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-3"><i data-lucide="user" class="w-4 h-4 text-gray-400"></i></span>
+                    <input type="text" id="login-username" class="w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 transition-all text-sm" placeholder="กรอกชื่อผู้ใช้งาน" required>
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1.5" for="login-password">รหัสผ่าน (Password)</label>
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-3"><i data-lucide="lock" class="w-4 h-4 text-gray-400"></i></span>
+                    <input type="password" id="login-password" class="w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 transition-all text-sm" placeholder="กรอกรหัสผ่าน" required>
+                </div>
+            </div>
+            <div id="login-error" class="hidden text-red-600 text-xs text-center font-bold bg-red-50 border border-red-200 py-2 rounded-lg">
+                <i data-lucide="alert-circle" class="w-3.5 h-3.5 inline relative -top-0.5"></i> ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง!
+            </div>
+            <button type="submit" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-2.5 rounded-lg transition-all flex justify-center items-center gap-2 shadow-md">
+                เข้าสู่ระบบ <i data-lucide="log-in" class="w-4 h-4"></i>
+            </button>
+        </form>
+        <div class="mt-6 border-t border-gray-100 pt-4 text-center">
+            <p class="text-[10px] text-gray-400">© 2026 กลุ่มงานควบคุมโรค โรงพยาบาลแม่อาย</p>
+        </div>
+    </div>
+</div>
+
+<div id="main-app" class="hidden">
+    <header class="bg-gradient-to-r from-teal-700 to-cyan-600 text-white shadow-md relative">
+    <div class="max-w-7xl mx-auto px-4 py-5 text-center relative">
+        <h1 class="text-2xl md:text-3xl font-bold mr-10 md:mr-0">ระบบบันทึกและติดตามผู้สัมผัสโรคพิษสุนัขบ้า</h1>
+        <p class="text-teal-100 text-sm mt-1">โรงพยาบาลแม่อาย จังหวัดเชียงใหม่ | กลุ่มงานควบคุมโรค</p>
+        <button onclick="performLogout()" class="absolute right-4 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 backdrop-blur-sm">
+            <i data-lucide="log-out" class="w-3.5 h-3.5"></i> <span class="hidden md:inline">ออกจากระบบ</span>
+        </button>
+    </div>
+    </header>
+    <nav class="max-w-7xl mx-auto px-4 mt-4">
+    <div class="flex gap-4 border-b border-gray-200 overflow-x-auto">
+    <button id="tab-dashboard" class="tab-active pb-2 px-3 cursor-pointer whitespace-nowrap flex items-center gap-1" onclick="switchTab('dashboard')">
+    <i data-lucide="bar-chart-3" class="w-4 h-4"></i>หน้าหลัก (Dashboard)
+    </button>
+    <button id="tab-record" class="tab-inactive pb-2 px-3 cursor-pointer whitespace-nowrap flex items-center gap-1" onclick="switchTab('record')">
+    <i data-lucide="file-plus" class="w-4 h-4"></i>บันทึกข้อมูลสัมผัสโรค
+    </button>
+    <button id="tab-search" class="tab-inactive pb-2 px-3 cursor-pointer whitespace-nowrap flex items-center gap-1" onclick="switchTab('search')">
+    <i data-lucide="search" class="w-4 h-4"></i>ค้นหา/จัดการเคส
+    </button>
+    <button id="tab-sheet" class="tab-inactive pb-2 px-3 cursor-pointer whitespace-nowrap flex items-center gap-1" onclick="switchTab('sheet')">
+    <i data-lucide="table" class="w-4 h-4"></i>ตารางข้อมูล & Google Sheets
+    </button>
+    </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-4 py-4">
+    <div id="panel-dashboard">
+    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 md:p-8 mb-6 relative overflow-hidden">
+    <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-teal-600 to-cyan-500"></div>
+    <div class="flex flex-col items-center text-center">
+    <div class="w-40 h-40 md:w-48 md:h-48 mb-6 flex items-center justify-center bg-transparent rounded-full overflow-hidden">
+    <img src="โลโก้หน่วยงาน รพ.แม่อาย.jpg" alt="โลโก้ รพ.แม่อาย" class="logo-blend max-w-full max-h-full object-contain" onerror="this.style.display='none'; document.getElementById('logo-fallback').classList.remove('hidden');">
+    <div id="logo-fallback" class="hidden w-32 h-32 flex flex-col items-center justify-center">
+    <svg class="w-full h-full text-teal-600" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="50" cy="50" r="46" stroke="#0d9488" stroke-width="2.5" fill="#f0fdfa"/>
+    <circle cx="50" cy="50" r="41" stroke="#eab308" stroke-width="1.2" fill="none"/>
+    <circle cx="50" cy="50" r="32" stroke="#0d9488" stroke-width="1.5" fill="#ffffff"/>
+    <rect x="48.5" y="27" width="3" height="46" rx="1.5" fill="#78350f"/>
+    <circle cx="50" cy="25" r="3.5" fill="#eab308"/>
+    <path d="M50 68 C42 63, 41 57, 50 53 C59 49, 58 43, 50 39 C42 35, 45 29, 50 28" stroke="#0d9488" stroke-width="2.8" stroke-linecap="round" fill="none"/>
+    <path d="M50 68 C42 63, 41 57, 50 53 C59 49, 58 43, 50 39 C42 35, 45 29, 50 28" stroke="#14b8a6" stroke-width="1.2" stroke-linecap="round" fill="none"/>
+    <path d="M44 45 C34 40, 32 50, 44 49" fill="#0d9488" opacity="0.8"/>
+    <path d="M56 45 C66 40, 68 50, 56 49" fill="#0d9488" opacity="0.8"/>
+    </svg>
+    </div>
+    </div>
+    <h2 class="text-2xl md:text-3xl font-extrabold text-gray-900 leading-tight">
+    Dashboard ระบบบันทึกผู้รับบริการฉีดวัคซีนพิษสุนัขบ้า รพ.แม่อาย
+    </h2>
+    <div class="mt-4 flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4">
+    <span class="text-base md:text-lg font-bold text-teal-700 bg-teal-50 px-4 py-1.5 rounded-full border border-teal-100 shadow-sm">
+    กลุ่มงานควบคุมโรค
+    </span>
+    <span class="hidden sm:inline text-gray-300">|</span>
+    <span class="text-base md:text-lg font-bold text-cyan-700 bg-cyan-50 px-4 py-1.5 rounded-full border border-cyan-100 shadow-sm">
+    โรงพยาบาลแม่อาย
+    </span>
+    </div>
+    </div>
+    <div class="mt-8 pt-4 border-t border-gray-100 flex justify-end">
+    <p class="text-xs md:text-sm font-bold text-gray-500 flex items-center gap-1.5">
+    <i data-lucide="user" class="w-4 h-4 text-teal-600"></i>
+    จัดทำโดย นายจีรศักดิ์ นวลดี นักสาธารณสุขปฎิบัติการ งานควบคุมโรค รพ.แม่อาย
+    </p>
+    </div>
+    </div>
+
+    <div class="flex justify-between items-end mb-4 mt-6">
+        <h3 class="font-bold text-gray-800 text-lg flex items-center gap-1.5">
+            <i data-lucide="pie-chart" class="w-5 h-5 text-teal-600"></i> สรุปข้อมูลภาพรวม
+        </h3>
+        <div class="flex items-center gap-2 bg-white p-1.5 rounded-lg border border-teal-200 shadow-sm">
+            <label class="text-sm font-bold text-gray-700 ml-2" for="dashboard-year-filter">เลือกปี:</label>
+            <select id="dashboard-year-filter" class="border border-gray-300 rounded-md px-3 py-1 text-sm font-semibold text-teal-800 outline-none focus:border-teal-600 bg-teal-50 cursor-pointer" onchange="updateDashboard()">
+                <option value="all">ทุกปี</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+    <div class="bg-white rounded-xl p-4 text-center shadow-sm border border-gray-200">
+    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider">จำนวนผู้ป่วยทั้งหมด</p>
+    <p id="stat-total-val" class="text-3xl font-bold text-teal-700 mt-1">0</p>
+    </div>
+    <div class="bg-white rounded-xl p-4 text-center shadow-sm border border-gray-200">
+    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider">เพศชาย</p>
+    <p id="stat-male-val" class="text-3xl font-bold text-blue-600 mt-1">0</p>
+    </div>
+    <div class="bg-white rounded-xl p-4 text-center shadow-sm border border-gray-200">
+    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider">เพศหญิง</p>
+    <p id="stat-female-val" class="text-3xl font-bold text-pink-500 mt-1">0</p>
+    </div>
+    <div class="bg-white rounded-xl p-4 text-center shadow-sm border border-gray-200">
+    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider">สถิติฉีด RIG</p>
+    <p id="stat-rig-val" class="text-3xl font-bold text-orange-500 mt-1">0</p>
+    </div>
+    </div>
+
+    <div class="grid grid-cols-3 gap-4 mb-6 mt-4">
+    <div class="bg-white rounded-xl p-4 text-center shadow-sm border border-amber-100">
+    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider">กำลังรักษา</p>
+    <p id="stat-status-active" class="text-2xl font-bold text-amber-500 mt-1">0</p>
+    </div>
+    <div class="bg-white rounded-xl p-4 text-center shadow-sm border border-green-100">
+    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider">ครบกำหนด</p>
+    <p id="stat-status-completed" class="text-2xl font-bold text-green-600 mt-1">0</p>
+    </div>
+    <div class="bg-white rounded-xl p-4 text-center shadow-sm border border-red-100">
+    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider">ขาดนัดฉีด</p>
+    <p id="stat-status-missed" class="text-2xl font-bold text-red-500 mt-1">0</p>
+    </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-200">
+        <h3 class="font-bold mb-4 text-gray-700 text-sm flex items-center gap-1">
+            <i data-lucide="map-pin" class="w-4 h-4 text-teal-600"></i> ผู้สัมผัสแยกรายตำบล
+        </h3>
+        <div id="chart-tambon" class="space-y-3 overflow-y-auto max-h-48 pr-2"></div>
+        </div>
+        
+        <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-200">
+        <h3 class="font-bold mb-4 text-gray-700 text-sm flex items-center gap-1">
+            <i data-lucide="shield-check" class="w-4 h-4 text-teal-600"></i> พฤติกรรมการป้องกันโรค
+        </h3>
+        <div id="chart-behavior" class="space-y-5"></div>
+        </div>
+        
+        <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-200">
+        <h3 class="font-bold mb-4 text-gray-700 text-sm flex items-center gap-1">
+            <i data-lucide="syringe" class="w-4 h-4 text-teal-600"></i> ประวัติวัคซีนสัตว์ที่สัมผัส
+        </h3>
+        <div id="chart-animal-vaccine" class="space-y-3"></div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+    <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-200">
+    <h3 class="font-bold mb-4 text-gray-700 text-sm flex items-center gap-1">
+    <i data-lucide="paw-print" class="w-4 h-4 text-teal-600"></i> สัดส่วนชนิดสัตว์นำโรค
+    </h3>
+    <div id="chart-animal" class="space-y-3"></div>
+    </div>
+    <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-200">
+    <h3 class="font-bold mb-4 text-gray-700 text-sm flex items-center gap-1">
+    <i data-lucide="activity" class="w-4 h-4 text-teal-600"></i> ตำแหน่งที่ถูกกัด/สัมผัสโรค
+    </h3>
+    <div id="chart-location" class="space-y-3"></div>
+    </div>
+    </div>
+    <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-200">
+    <h3 class="font-bold mb-4 text-gray-700 text-sm flex items-center gap-1">
+    <i data-lucide="trending-up" class="w-4 h-4 text-teal-600"></i> แนวโน้มผู้สัมผัสรายเดือน
+    </h3>
+    <div id="chart-monthly" class="h-44 p-2 w-full"></div>
+    </div>
+    </div>
+
+    <div id="panel-record" class="hidden">
+    <div class="bg-white rounded-xl p-4 mb-4 border border-gray-200 shadow-sm">
+    <h2 class="font-bold text-gray-800 text-lg flex items-center gap-1.5">
+    <i data-lucide="file-text" class="w-5 h-5 text-teal-600"></i> บันทึกข้อมูลการสัมผัสโรครายบุคคล
+    </h2>
+    <p class="text-xs text-gray-500 mt-0.5">กรุณากรอกข้อมูลตามส่วนงานด้านล่างให้สมบูรณ์เพื่อบันทึกลงในทะเบียนข้อมูล</p>
+    </div>
+
+    <form id="record-form" class="space-y-4">
+    <fieldset class="canva-section">
+    <legend class="canva-text">ส่วนที่ 1: ข้อมูลทั่วไปผู้สัมผัสโรค</legend>
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mt-2">
+    <div><label class="field-label" for="f-case_no">เลขที่ Case</label><input type="text" id="f-case_no" name="case_no" class="field-input" placeholder="เช่น 1/2569">
+    </div>
+    <div><label class="field-label" for="f-register_date">วันที่ลงทะเบียน</label><input type="date" id="f-register_date" name="register_date" class="field-input">
+    </div>
+    <div><label class="field-label" for="f-id_card">เลขประจำตัวประชาชน</label><input type="text" id="f-id_card" name="id_card" class="field-input" maxlength="13" placeholder="เลขบัตร 13 หลัก">
+    </div>
+    <div>
+        <label class="field-label" for="f-nationality">สัญชาติ</label>
+        <select id="f-nationality" name="nationality" class="field-input">
+            <option value="ไทย">ไทย</option>
+            <option value="เมียนมาร์">เมียนมาร์</option>
+            <option value="ลาว">ลาว</option>
+            <option value="อื่นๆ">อื่นๆ</option>
+        </select>
+    </div>
+    <div><label class="field-label" for="f-hn">HN (รหัสผู้ป่วย)</label><input type="text" id="f-hn" name="hn" class="field-input" placeholder="HN-XXXXXX">
+    </div>
+    <div><label class="field-label" for="f-full_name">ชื่อ-สกุล <span class="text-red-500">*</span></label><input type="text" id="f-full_name" name="full_name" class="field-input" required placeholder="ระบุชื่อและนามสกุล">
+    </div>
+    <div><label class="field-label" for="f-age">อายุ (ปี)</label><input type="number" id="f-age" name="age" class="field-input" min="0" placeholder="ระบุอายุ">
+    </div>
+    <div><label class="field-label" for="f-gender">เพศ</label><select id="f-gender" name="gender" class="field-input"><option value="">-- เลือก --</option><option value="ชาย">ชาย</option><option value="หญิง">หญิง</option></select>
+    </div>
+    <div><label class="field-label" for="f-marital_status">สถานภาพ</label><select id="f-marital_status" name="marital_status" class="field-input"><option value="">-- เลือก --</option><option>โสด</option><option>คู่</option><option>หย่าร้าง</option><option>หม้าย</option></select>
+    </div>
+    <div><label class="field-label" for="f-occupation">อาชีพ</label><select id="f-occupation" name="occupation" class="field-input"><option value="">-- เลือก --</option><option>ขรก./ครู/พยาบาล/ตำรวจ/ทหาร</option><option>นักเรียน/นักศึกษา</option><option>พระภิกษุ/สามเณร/นักบวช</option><option>เกษตรกร/ทำสวน/ทำไร่</option><option>ธุรกิจส่วนตัว</option><option>รับจ้าง</option><option>ว่างงาน</option><option>ค้าขาย</option><option>พนักงานรัฐ/เอกชน</option><option>ในปกครอง</option><option>ผู้สูงอายุ</option><option>แม่บ้าน/งานบ้าน</option><option>อื่นๆ</option></select>
+    </div>
+    <div><label class="field-label" for="f-guardian_occupation">อาชีพผู้ปกครอง (ถ้ามี)</label><select id="f-guardian_occupation" name="guardian_occupation" class="field-input"><option value="">-- เลือก --</option><option>ขรก./ครู/พยาบาล/ตำรวจ/ทหาร</option><option>นักเรียน/นักศึกษา</option><option>พระภิกษุ/สามเณร/นักบวช</option><option>เกษตรกร/ทำสวน/ทำไร่</option><option>ธุรกิจส่วนตัว</option><option>รับจ้าง</option><option>ว่างงาน</option><option>ค้าขาย</option><option>พนักงานรัฐ/เอกชน</option><option>ในปกครอง</option><option>ผู้สูงอายุ</option><option>แม่บ้าน/งานบ้าน</option><option>อื่นๆ</option></select>
+    </div>
+    <div><label class="field-label" for="f-phone">เบอร์โทรศัพท์</label><input type="tel" id="f-phone" name="phone" class="field-input" placeholder="เช่น 081-XXXXXXX">
+    </div>
+    <div class="md:col-span-4"><label class="field-label" for="f-address">ที่อยู่ปัจจุบัน</label><input type="text" id="f-address" name="address" class="field-input" placeholder="เลขที่ ถนน ซอย ถ. ตำบล อำเภอ จังหวัด">
+    </div>
+    <div><label class="field-label" for="f-exposure_village_no">หมู่ที่ (ที่สัมผัสโรค)</label><input type="text" id="f-exposure_village_no" name="exposure_village_no" class="field-input">
+    </div>
+    <div><label class="field-label" for="f-exposure_village_name">ชื่อหมู่บ้าน</label><input type="text" id="f-exposure_village_name" name="exposure_village_name" class="field-input">
+    </div>
+    <div><label class="field-label" for="f-exposure_tambon">ตำบล</label><input type="text" id="f-exposure_tambon" name="exposure_tambon" class="field-input">
+    </div>
+    <div><label class="field-label" for="f-exposure_amphoe">อำเภอ</label><input type="text" id="f-exposure_amphoe" name="exposure_amphoe" class="field-input">
+    </div>
+    <div><label class="field-label" for="f-exposure_province">จังหวัด</label><input type="text" id="f-exposure_province" name="exposure_province" class="field-input">
+    </div>
+    <div><label class="field-label" for="f-exposure_date">วันที่สัมผัสโรค</label><input type="date" id="f-exposure_date" name="exposure_date" class="field-input">
+    </div>
+    <div><label class="field-label" for="f-treatment_right">สิทธิการรักษา</label><select id="f-treatment_right" name="treatment_right" class="field-input"><option value="">-- เลือก --</option><option>บัตรทอง</option><option>บัตรทอง นอกเขต</option><option>ขรก.</option><option>ประกันสังคม</option><option>อื่นๆ</option></select>
+    </div>
+    </div>
+    </fieldset>
+
+    <fieldset class="canva-section">
+    <legend class="canva-text">ส่วนที่ 2: ประวัติการสัมผัสโรค</legend>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mt-2">
+    <div><label class="field-label" for="f-exposure_method">ลักษณะการสัมผัส</label><select id="f-exposure_method" name="exposure_method" class="field-input"><option value="">-- เลือก --</option><option>ถูกกัด</option><option>ถูกข่วน</option><option>ถูกเลีย/น้ำลาย</option></select>
+    </div>
+    <div><label class="field-label" for="f-exposure_bleeding">เลือดออก</label><select id="f-exposure_bleeding" name="exposure_bleeding" class="field-input"><option value="">-- เลือก --</option><option>มีเลือดออก</option><option>ไม่มีเลือดออก</option></select>
+    </div>
+    <div><label class="field-label" for="f-exposure_location">ตำแหน่งที่ถูกสัมผัส</label><select id="f-exposure_location" name="exposure_location" class="field-input"><option value="">-- เลือก --</option><option>ศีรษะ</option><option>หน้า</option><option>ลำคอ</option><option>มือ</option><option>แขน</option><option>ลำตัว</option><option>ขา</option><option>เท้า</option><option>กินอาหารดิบหรือน้ำที่ปนเปื้อน</option></select>
+    </div>
+    </div>
+    </fieldset>
+
+    <fieldset class="canva-section">
+    <legend class="canva-text">ส่วนที่ 3: ข้อมูลของสัตว์ที่สัมผัส</legend>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mt-2">
+    <div><label class="field-label" for="f-animal_type">ประเภทสัตว์</label><select id="f-animal_type" name="animal_type" class="field-input"><option value="">-- เลือก --</option><option>สุนัข</option><option>แมว</option><option>หนู</option><option>ชะนี/ลิง/ค่าง</option><option>ค้างคาว</option><option>กระรอก/กระแต/กระต่าย</option><option>สุกร</option><option>อื่นๆ</option></select>
+    </div>
+    <div><label class="field-label" for="f-animal_age">อายุสัตว์</label><select id="f-animal_age" name="animal_age" class="field-input"><option value="">-- เลือก --</option><option>น้อยกว่า 3 เดือน</option><option>3-6 เดือน</option><option>มากกว่า 1 ปี</option><option>ไม่ทราบ</option></select>
+    </div>
+    <div><label class="field-label" for="f-animal_ownership">สถานภาพสัตว์</label><select id="f-animal_ownership" name="animal_ownership" class="field-input"><option value="">-- เลือก --</option><option>มีเจ้าของ</option><option>ไม่มีเจ้าของ</option><option>ไม่ทราบ</option></select>
+    </div>
+    <div><label class="field-label" for="f-animal_quarantine">การกักสัตว์</label><select id="f-animal_quarantine" name="animal_quarantine" class="field-input"><option value="">-- เลือก --</option><option>กักขังได้</option><option>กักขังไม่ได้</option><option>ถูกฆ่าตาย</option><option>หนีหาย/จำไม่ได้</option></select>
+    </div>
+    <div><label class="field-label" for="f-animal_vaccine_history">ประวัติวัคซีนสัตว์</label><select id="f-animal_vaccine_history" name="animal_vaccine_history" class="field-input"><option value="">-- เลือก --</option><option>ไม่เคยฉีด</option><option>ไม่ทราบ</option><option>เคยฉีด 1 ครั้ง</option><option>เคยฉีดเกิน 1 ครั้ง</option></select>
+    </div>
+    <div id="animal-vaccine-detail-wrap" class="hidden"><label class="field-label" for="f-animal_vaccine_detail">ครั้งสุดท้ายที่ฉีด (สัตว์)</label><select id="f-animal_vaccine_detail" name="animal_vaccine_detail" class="field-input"><option value="">-- เลือก --</option><option>ภายใน 1 ปี</option><option>เกิน 1 ปี</option></select>
+    </div>
+    <div><label class="field-label" for="f-bite_cause">สาเหตุที่ถูกกัด</label><select id="f-bite_cause" name="bite_cause" class="field-input"><option value="">-- เลือก --</option><option>ไม่มีสาเหตุจูงใจ</option><option>มีสาเหตุจูงใจ</option></select>
+    </div>
+    <div id="bite-cause-detail-wrap" class="hidden"><label class="field-label" for="f-bite_cause_detail">ระบุสาเหตุจูงใจ</label><select id="f-bite_cause_detail" name="bite_cause_detail" class="field-input"><option value="">-- เลือก --</option><option>ทำให้สัตว์เจ็บปวด/โมโห</option><option>แยกสัตว์ที่กำลังต่อสู้</option><option>เข้าใกล้สัตว์แม่ลูกอ่อน</option><option>รบกวนสัตว์ขณะกินข้าว</option><option>เข้าไปในบริเวณที่สัตว์เป็นเจ้าของ</option><option>อื่นๆ</option></select>
+    </div>
+    </div>
+    </fieldset>
+
+    <fieldset class="canva-section">
+    <legend class="canva-text">ส่วนที่ 4: การรักษาเบื้องต้นและประวัติวัคซีน</legend>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mt-2">
+    <div><label class="field-label" for="f-wound_wash">4.1 การล้างแผล</label><select id="f-wound_wash" name="wound_wash" class="field-input"><option value="">-- เลือก --</option><option>ไม่ได้ล้าง</option><option>ล้าง</option></select>
+    </div>
+    <div id="wash-method-wrap" class="hidden"><label class="field-label" for="f-wound_wash_method">ล้างด้วย</label><select id="f-wound_wash_method" name="wound_wash_method" class="field-input"><option value="">-- เลือก --</option><option>น้ำ</option><option>น้ำและสบู่</option></select>
+    </div>
+    <div><label class="field-label" for="f-antiseptic">4.2 การใส่ยาฆ่าเชื้อ</label><select id="f-antiseptic" name="antiseptic" class="field-input"><option value="">-- เลือก --</option><option>ไม่ใส่</option><option>ใส่</option></select>
+    </div>
+    <div id="antiseptic-type-wrap" class="hidden"><label class="field-label" for="f-antiseptic_type">ชนิดยา</label><select id="f-antiseptic_type" name="antiseptic_type" class="field-input"><option value="">-- เลือก --</option><option>โพวีดีน/เบตาดีน (ไม่มีแอลกอฮอล์)</option><option>ทิงเจอร์ไอโอดีน/แอลกอฮอล์</option><option>อื่นๆ</option></select>
+    </div>
+    <div><label class="field-label" for="f-prev_vaccine_history">4.3 ประวัติการฉีดวัคซีนป้องกันโรคพิษสุนัขบ้าของผู้สัมผัส</label><select id="f-prev_vaccine_history" name="prev_vaccine_history" class="field-input"><option value="">-- เลือก --</option><option>ไม่เคยฉีด</option><option>เคยฉีด</option></select>
+    </div>
+    <div id="prev-vaccine-period-wrap" class="hidden"><label class="field-label" for="f-prev_vaccine_period">ระยะเวลาล่าสุด</label><select id="f-prev_vaccine_period" name="prev_vaccine_period" class="field-input"><option value="">-- เลือก --</option><option>ภายใน 6 เดือน</option><option>เกิน 6 เดือน</option></select>
+    </div>
+    <div id="prev-vaccine-dose-wrap" class="hidden"><label class="field-label" for="f-prev_vaccine_dose">การฉีดกระตุ้น</label><select id="f-prev_vaccine_dose" name="prev_vaccine_dose" class="field-input"><option value="">-- เลือก --</option></select>
+    </div>
+    </div>
+    </fieldset>
+
+    <fieldset class="canva-section">
+    <legend class="canva-text">ส่วนที่ 5: แผนการรักษาและประวัติการได้รับวัคซีน</legend>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
+    <div class="md:col-span-2"><label class="field-label" for="f-treatment_order">คำสั่งการรักษา</label><select id="f-treatment_order" name="treatment_order" class="field-input"><option value="">-- เลือก --</option><option>ไม่ฉีดวัคซีน สังเกตอาการสุนัข 10 วันถ้าสัตว์ป่วยหรือตายให้กลับมารักษาทันที</option><option>ฉีดวัคซีนให้ครบ 4 หรือ 5 เข็มพร้อมสังเกตอาการสุนัข 10 วันหลังถูกกัด หากสัตว์มีอาการผิดปกติหรือตายให้รายงานแพทย์</option><option>ฉีดวัคซีน ให้ครบ 3 เข็มพร้อมสังเกตอาการสุนัข 10 วันหลังถูกกัดหากสัตว์ปกติ ไม่ต้องฉีดเข็มที่ 4 และ 5 หากสัตว์ผิดปกติ หรือตายให้รายงานแพทย์</option><option>ฉีดกระตุ้นในผู้ที่เคยได้รับวัคซีนครบชุดมาก่อน(Booster Immunization)</option></select>
+    </div>
+    <div><label class="field-label" for="f-rig_given">5.1 การฉีดอิมมูโนโกลบุลิน (RIG)</label><select id="f-rig_given" name="rig_given" class="field-input"><option value="">-- เลือก --</option><option>ไม่ฉีด</option><option>ฉีด</option></select>
+    </div>
+    <div id="rig-detail-wrap" class="hidden md:col-span-2 grid grid-cols-2 md:grid-cols-4 gap-2 bg-teal-50/50 p-2 rounded-lg border border-teal-100">
+    <div><label class="field-label" for="f-erig_no">ERIG Lot.No.</label><input type="text" id="f-erig_no" name="erig_no" class="field-input">
+    </div>
+    <div><label class="field-label" for="f-erig_exp">Exp. (วันหมดอายุ)</label><input type="text" id="f-erig_exp" name="erig_exp" class="field-input">
+    </div>
+    <div><label class="field-label" for="f-erig_weight">นน.(Kg)</label><input type="text" id="f-erig_weight" name="erig_weight" class="field-input">
+    </div>
+    <div><label class="field-label" for="f-erig_iu">จำนวน (IU)</label><input type="text" id="f-erig_iu" name="erig_iu" class="field-input">
+    </div>
+    </div>
+    <div><label class="field-label" for="f-vaccine_route">5.2 ชนิดและวิธีฉีดวัคซีน (PCEC/Verorab)</label><select id="f-vaccine_route" name="vaccine_route" class="field-input"><option value="">-- เลือก --</option><option>ไม่ฉีด</option><option>เข้ากล้ามเนื้อ (IM 0.5 ml)</option><option>เข้าผิวหนัง (ID 0.1 ml x 1 จุด)</option><option>เข้าผิวหนัง (ID 0.1 ml x 2 จุด)</option></select>
+    </div>
+    </div>
+    <div class="mt-4 overflow-x-auto">
+    <table class="vaccine-table">
+    <thead>
+    <tr>
+    <th class="w-12">ครั้งที่</th>
+    <th>วันที่นัด/ฉีด</th>
+    <th>ชนิดวัคซีน</th>
+    <th>Lot.no</th>
+    <th>ขนาด (Dose)</th>
+    <th>ชื่อผู้ฉีด</th>
+    <th>สถานที่ฉีด</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+    <td class="text-center font-bold">1</td>
+    <td><input type="date" id="f-vaccine_1_date" name="vaccine_1_date"></td>
+    <td><select id="f-vaccine_1_type" name="vaccine_1_type" class="field-input px-1 py-1"><option value="">-- เลือก --</option><option value="Rabies vaccine">Rabies vaccine</option><option value="CPRV(Chromatographically Purified Rabies Vaccine)">CPRV(Chromatographically Purified Rabies Vaccine)</option><option value="PCEC(Purified Chick Embryo Cell Rabies Vaccine)">PCEC(Purified Chick Embryo Cell Rabies Vaccine)</option><option value="PVRV(Purified Vero Cell Rabies Vaccine)">PVRV(Purified Vero Cell Rabies Vaccine)</option></select></td>
+    <td><input type="text" id="f-vaccine_1_lot" name="vaccine_1_lot"></td>
+    <td><select id="f-vaccine_1_dose" name="vaccine_1_dose" class="field-input px-1 py-1"><option value="">-- เลือก --</option><option value="IM 0.5 ml x1">IM 0.5 ml x1</option><option value="ID 0.1 ml x1">ID 0.1 ml x1</option><option value="ID 0.1 ml x 2">ID 0.1 ml x 2</option></select></td>
+    <td><input type="text" id="f-vaccine_1_person" name="vaccine_1_person"></td>
+    <td><input type="text" id="f-vaccine_1_place" name="vaccine_1_place"></td>
+    </tr>
+    <tr>
+    <td class="text-center font-bold">2</td>
+    <td><input type="date" id="f-vaccine_2_date" name="vaccine_2_date"></td>
+    <td><select id="f-vaccine_2_type" name="vaccine_2_type" class="field-input px-1 py-1"><option value="">-- เลือก --</option><option value="Rabies vaccine">Rabies vaccine</option><option value="CPRV(Chromatographically Purified Rabies Vaccine)">CPRV(Chromatographically Purified Rabies Vaccine)</option><option value="PCEC(Purified Chick Embryo Cell Rabies Vaccine)">PCEC(Purified Chick Embryo Cell Rabies Vaccine)</option><option value="PVRV(Purified Vero Cell Rabies Vaccine)">PVRV(Purified Vero Cell Rabies Vaccine)</option></select></td>
+    <td><input type="text" id="f-vaccine_2_lot" name="vaccine_2_lot"></td>
+    <td><select id="f-vaccine_2_dose" name="vaccine_2_dose" class="field-input px-1 py-1"><option value="">-- เลือก --</option><option value="IM 0.5 ml x1">IM 0.5 ml x1</option><option value="ID 0.1 ml x1">ID 0.1 ml x1</option><option value="ID 0.1 ml x 2">ID 0.1 ml x 2</option></select></td>
+    <td><input type="text" id="f-vaccine_2_person" name="vaccine_2_person"></td>
+    <td><input type="text" id="f-vaccine_2_place" name="vaccine_2_place"></td>
+    </tr>
+    <tr>
+    <td class="text-center font-bold">3</td>
+    <td><input type="date" id="f-vaccine_3_date" name="vaccine_3_date"></td>
+    <td><select id="f-vaccine_3_type" name="vaccine_3_type" class="field-input px-1 py-1"><option value="">-- เลือก --</option><option value="Rabies vaccine">Rabies vaccine</option><option value="CPRV(Chromatographically Purified Rabies Vaccine)">CPRV(Chromatographically Purified Rabies Vaccine)</option><option value="PCEC(Purified Chick Embryo Cell Rabies Vaccine)">PCEC(Purified Chick Embryo Cell Rabies Vaccine)</option><option value="PVRV(Purified Vero Cell Rabies Vaccine)">PVRV(Purified Vero Cell Rabies Vaccine)</option></select></td>
+    <td><input type="text" id="f-vaccine_3_lot" name="vaccine_3_lot"></td>
+    <td><select id="f-vaccine_3_dose" name="vaccine_3_dose" class="field-input px-1 py-1"><option value="">-- เลือก --</option><option value="IM 0.5 ml x1">IM 0.5 ml x1</option><option value="ID 0.1 ml x1">ID 0.1 ml x1</option><option value="ID 0.1 ml x 2">ID 0.1 ml x 2</option></select></td>
+    <td><input type="text" id="f-vaccine_3_person" name="vaccine_3_person"></td>
+    <td><input type="text" id="f-vaccine_3_place" name="vaccine_3_place"></td>
+    </tr>
+    <tr>
+    <td class="text-center font-bold">4</td>
+    <td><input type="date" id="f-vaccine_4_date" name="vaccine_4_date"></td>
+    <td><select id="f-vaccine_4_type" name="vaccine_4_type" class="field-input px-1 py-1"><option value="">-- เลือก --</option><option value="Rabies vaccine">Rabies vaccine</option><option value="CPRV(Chromatographically Purified Rabies Vaccine)">CPRV(Chromatographically Purified Rabies Vaccine)</option><option value="PCEC(Purified Chick Embryo Cell Rabies Vaccine)">PCEC(Purified Chick Embryo Cell Rabies Vaccine)</option><option value="PVRV(Purified Vero Cell Rabies Vaccine)">PVRV(Purified Vero Cell Rabies Vaccine)</option></select></td>
+    <td><input type="text" id="f-vaccine_4_lot" name="vaccine_4_lot"></td>
+    <td><select id="f-vaccine_4_dose" name="vaccine_4_dose" class="field-input px-1 py-1"><option value="">-- เลือก --</option><option value="IM 0.5 ml x1">IM 0.5 ml x1</option><option value="ID 0.1 ml x1">ID 0.1 ml x1</option><option value="ID 0.1 ml x 2">ID 0.1 ml x 2</option></select></td>
+    <td><input type="text" id="f-vaccine_4_person" name="vaccine_4_person"></td>
+    <td><input type="text" id="f-vaccine_4_place" name="vaccine_4_place"></td>
+    </tr>
+    <tr>
+    <td class="text-center font-bold">5</td>
+    <td><input type="date" id="f-vaccine_5_date" name="vaccine_5_date"></td>
+    <td><select id="f-vaccine_5_type" name="vaccine_5_type" class="field-input px-1 py-1"><option value="">-- เลือก --</option><option value="Rabies vaccine">Rabies vaccine</option><option value="CPRV(Chromatographically Purified Rabies Vaccine)">CPRV(Chromatographically Purified Rabies Vaccine)</option><option value="PCEC(Purified Chick Embryo Cell Rabies Vaccine)">PCEC(Purified Chick Embryo Cell Rabies Vaccine)</option><option value="PVRV(Purified Vero Cell Rabies Vaccine)">PVRV(Purified Vero Cell Rabies Vaccine)</option></select></td>
+    <td><input type="text" id="f-vaccine_5_lot" name="vaccine_5_lot"></td>
+    <td><select id="f-vaccine_5_dose" name="vaccine_5_dose" class="field-input px-1 py-1"><option value="">-- เลือก --</option><option value="IM 0.5 ml x1">IM 0.5 ml x1</option><option value="ID 0.1 ml x1">ID 0.1 ml x1</option><option value="ID 0.1 ml x 2">ID 0.1 ml x 2</option></select></td>
+    <td><input type="text" id="f-vaccine_5_person" name="vaccine_5_person"></td>
+    <td><input type="text" id="f-vaccine_5_place" name="vaccine_5_place"></td>
+    </tr>
+    </tbody>
+    </table>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4 pt-3 border-t border-gray-100">
+    <div><label class="field-label" for="f-close_case_3dose">ปิดเคส (ฉีดครบ 3 เข็ม)</label><select id="f-close_case_3dose" name="close_case_3dose" class="field-input"><option value="">-- เลือก --</option><option value="ยังไม่ปิด">ยังไม่ปิด</option><option value="ปิดเคส">ปิดเคส</option></select>
+    </div>
+    <div><label class="field-label" for="f-animal_condition">อาการสัตว์ (หลัง 10 วัน)</label><select id="f-animal_condition" name="animal_condition" class="field-input"><option value="">-- เลือก --</option><option value="ปกติ">ปกติ (มีชีวิตรอด)</option><option value="ผิดปกติ">ผิดปกติ / ตาย</option><option value="ไม่ทราบ">ไม่ทราบ</option></select>
+    </div>
+    <div><label class="field-label" for="f-doctor_name">ชื่อแพทย์ผู้สั่งการรักษา</label><input type="text" id="f-doctor_name" name="doctor_name" class="field-input">
+    </div>
+    <div><label class="field-label" for="f-reporter_name">ชื่อผู้บันทึก/ผู้รายงาน</label><input type="text" id="f-reporter_name" name="reporter_name" class="field-input">
+    </div>
+    <div><label class="field-label" for="f-report_date">วันที่บันทึกรายงาน</label><input type="date" id="f-report_date" name="report_date" class="field-input">
+    </div>
+    <div><label class="field-label" for="f-status">สถานะผู้ป่วย</label><select id="f-status" name="status" class="field-input"><option value="กำลังรักษา">กำลังรักษา</option><option value="ครบกำหนด">ครบกำหนดการรักษา</option><option value="ขาดนัด">ขาดนัดฉีดวัคซีน</option></select>
+    </div>
+    </div>
+    </fieldset>
+    <div class="flex gap-3">
+    <button data-template-id="save-button" type="submit" class="bg-teal-600 hover:bg-teal-700 text-white px-6 py-2 rounded-lg font-semibold flex items-center gap-1 transition-all shadow">
+    <i data-lucide="save" class="w-4 h-4"></i> บันทึกข้อมูล
+    </button>
+    <button data-template-id="clear-button" type="button" class="bg-white hover:bg-gray-100 border border-gray-300 text-gray-700 px-6 py-2 rounded-lg transition-all" onclick="clearForm()">
+    ล้างฟอร์ม
+    </button>
+    </div>
+    <div id="form-message" class="hidden mt-2 p-3 rounded-lg text-sm"></div>
+    </form>
+    </div>
+
+    <div id="panel-search" class="hidden">
+    <div class="flex flex-col md:flex-row gap-3 mb-4 bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+    <div class="relative flex-1">
+    <span class="absolute inset-y-0 left-0 flex items-center pl-3">
+    <i data-lucide="search" class="w-4 h-4 text-gray-400"></i>
+    </span>
+    <input type="text" id="search-input" placeholder="ค้นหาชื่อ-สกุล, เลขประจำตัวประชาชน หรือ เลข Case No..." class="w-full border rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-teal-600" onkeyup="if(event.key === 'Enter') performSearch()">
+    </div>
+    <button onclick="performSearch()" class="bg-teal-600 text-white px-5 py-2 rounded-lg hover:bg-teal-700 transition-all text-sm font-semibold flex items-center justify-center gap-1 shadow">
+    ค้นหาเคส
+    </button>
+    </div>
+    <div id="search-results" class="space-y-3">
+    <p class="text-gray-500 text-center py-8">กรอกคำค้นหาเพื่อแสดงข้อมูลผู้ป่วยในระบบ</p>
+    </div>
+    </div>
+
+    <div id="panel-sheet" class="hidden">
+    <div class="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-xl p-4 mb-4 shadow-sm">
+    <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+    <div>
+    <h3 class="font-bold text-emerald-800 text-sm flex items-center gap-1.5">
+    <i data-lucide="link-2" class="w-4 h-4 text-emerald-600"></i> เชื่อมต่อ Google Sheets ออนไลน์ (ระบบส่งข้อมูลคลาวด์)
+    </h3>
+    <p class="text-xs text-emerald-700/80 mt-1">วางลิงก์ Web App URL ที่ได้จากขั้นตอนการติดตั้ง Apps Script เพื่อบันทึกข้อมูลส่งขึ้น Google Sheets ของคุณอัตโนมัติ</p>
+    </div>
+    <div class="flex items-center gap-2">
+    <span id="gs-status-badge" class="bg-gray-200 text-gray-700 text-[10px] font-bold px-2 py-1 rounded-full uppercase">ปิดการใช้งาน</span>
+    </div>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-2 mt-3">
+    <input type="text" id="gs-webhook-url" placeholder="https://script.google.com/macros/s/.../exec" class="md:col-span-3 border border-emerald-300 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-emerald-600 font-mono bg-white">
+    <div class="flex gap-2">
+    <button onclick="saveGoogleSheetsSettings()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-4 py-1.5 rounded-lg transition-all flex-1 shadow flex items-center justify-center gap-1">
+    <i data-lucide="check-circle" class="w-3.5 h-3.5"></i> บันทึกสิทธิ์
+    </button>
+    <button onclick="testGoogleSheetsConnection()" class="bg-white border border-emerald-300 text-emerald-700 text-xs font-semibold px-3 py-1.5 rounded-lg hover:bg-emerald-50 transition-all flex items-center justify-center" title="ทดสอบส่งข้อมูลจำลอง">
+    ทดสอบ
+    </button>
+    </div>
+    </div>
+    </div>
+
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4 bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+    <div>
+    <h2 class="font-bold text-gray-800 text-lg flex items-center gap-2">
+    <i data-lucide="spreadsheet" class="w-5 h-5 text-teal-600"></i> แผ่นตารางงานประวัติผู้สัมผัสโรค
+    </h2>
+    <p class="text-xs text-gray-500 mt-1">สามารถดู ค้นหา นำเข้า และดาวน์โหลดข้อมูลตารางประวัติผู้ป่วยทั้งหมดได้จากที่นี่</p>
+    </div>
+    <div class="flex flex-wrap gap-2">
+    <label class="bg-teal-50 hover:bg-teal-100 text-teal-700 border border-teal-200 px-4 py-2 rounded-lg cursor-pointer transition-all flex items-center gap-1.5 text-sm font-semibold">
+    <i data-lucide="upload" class="w-4 h-4"></i> นำเข้าไฟล์ Excel (.xlsx)
+    <input type="file" id="import-excel-file" class="hidden" accept=".xlsx, .xls" onchange="handleExcelImport(event)">
+    </label>
+    <button onclick="exportExcel()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition-all flex items-center gap-1.5 text-sm font-semibold shadow">
+    <i data-lucide="download" class="w-4 h-4"></i> ส่งออกรายงาน Excel
+    </button>
+    </div>
+    </div>
+
+    <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden mb-4">
+    <div class="p-3 border-b border-gray-100 bg-slate-50 flex items-center justify-between gap-2">
+    <div class="relative w-72 max-w-full">
+    <span class="absolute inset-y-0 left-0 flex items-center pl-2.5">
+    <i data-lucide="filter" class="w-3.5 h-3.5 text-gray-400"></i>
+    </span>
+    <input type="text" id="sheet-search-input" placeholder="ค้นหาตัวกรองในตาราง..." class="w-full border rounded-md pl-8 pr-3 py-1.5 text-xs focus:outline-none focus:border-teal-600" onkeyup="renderSheetView()">
+    </div>
+    <span id="sheet-count-badge" class="bg-teal-100 text-teal-800 text-xs font-semibold px-2.5 py-1 rounded-full">พบ 0 แถว</span>
+    </div>
+    <div class="sheet-container overflow-auto max-h-[500px]">
+    <table class="min-w-full divide-y divide-gray-200 text-xs text-left">
+    <thead class="bg-slate-100 text-gray-700 sticky top-0 z-10 border-b border-gray-300">
+    <tr>
+    <th class="px-3 py-2 text-center bg-slate-200 border-r border-gray-300 w-12 sticky left-0 z-20">#</th>
+    <th class="px-3 py-2 border-r border-gray-300 font-bold text-teal-800">Case No</th>
+    <th class="px-3 py-2 border-r border-gray-300">วันที่ลงทะเบียน</th>
+    <th class="px-3 py-2 border-r border-gray-300 font-semibold text-gray-900 min-w-[150px]">ชื่อ-นามสกุล</th>
+    <th class="px-3 py-2 border-r border-gray-300">เลขบัตรประชาชน</th>
+    <th class="px-3 py-2 border-r border-gray-300">HN รหัสผู้ป่วย</th>
+    <th class="px-3 py-2 border-r border-gray-300">อายุ (ปี)</th>
+    <th class="px-3 py-2 border-r border-gray-300">เพศ</th>
+    <th class="px-3 py-2 border-r border-gray-300">เบอร์โทรศัพท์</th>
+    <th class="px-3 py-2 border-r border-gray-300">วันที่สัมผัสโรค</th>
+    <th class="px-3 py-2 border-r border-gray-300">ชนิดสัตว์ที่กัด</th>
+    <th class="px-3 py-2 border-r border-gray-300">ตำแหน่งถูกสัมผัส</th>
+    <th class="px-3 py-2 border-r border-gray-300">ประวัติวัคซีนผู้สัมผัส</th>
+    <th class="px-3 py-2 border-r border-gray-300">การฉีด RIG</th>
+    <th class="px-3 py-2 border-r border-gray-300">วิธีฉีดวัคซีน</th>
+    <th class="px-3 py-2 border-r border-gray-300">สถานะผู้ป่วย</th>
+    <th class="px-4 py-2 text-center w-28 sticky right-0 bg-slate-100 border-l border-gray-300">ตัวเลือก</th>
+    </tr>
+    </thead>
+    <tbody id="sheet-rows-body" class="bg-white divide-y divide-gray-200">
+    </tbody>
+    </table>
+    </div>
+    </div>
+    </div>
+
+    <div id="panel-print-container" class="hidden">
+    <div class="no-print mb-4 flex justify-between items-center bg-white p-4 rounded-lg shadow-sm border border-gray-200 sticky top-4 z-50">
+    <div>
+    <h2 class="font-bold text-gray-800 text-lg flex items-center gap-2">
+    <i data-lucide="printer" class="w-5 h-5 text-indigo-600"></i> ตัวอย่างก่อนพิมพ์ (Print Preview)
+    </h2>
+    <p class="text-xs text-gray-500">ตรวจสอบความถูกต้องก่อนสั่งพิมพ์เป็นแบบฟอร์ม A4</p>
+    <p class="text-xs text-indigo-600 mt-1 font-semibold flex items-center gap-1">
+    <i data-lucide="info" class="w-3.5 h-3.5"></i> 💡 ทริค: ในหน้าต่างเครื่องพิมพ์ ให้เปลี่ยนปลายทาง (Destination) เป็น "Save as PDF" เพื่อบันทึกเป็นไฟล์
+    </p>
+    </div>
+    <div class="flex gap-2">
+    <button onclick="closePrintPreview()" class="px-4 py-2 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-lg text-sm font-semibold transition-all">
+    กลับหน้าค้นหา
+    </button>
+    <button onclick="triggerPrint()" class="px-5 py-2 bg-indigo-600 text-white hover:bg-indigo-700 rounded-lg text-sm font-semibold transition-all shadow flex items-center gap-1">
+    <i data-lucide="printer" class="w-4 h-4"></i> สั่งพิมพ์ / บันทึก PDF
+    </button>
+    </div>
+    </div>
+
+    <div id="printable-a4" class="a4-page text-[11px] leading-tight font-['Sarabun'] relative">
+    </div>
+    </div>
+
+    </main>
+</div> <div id="delete-modal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-[150]">
+<div class="bg-white rounded-xl p-6 max-w-sm mx-4 shadow-2xl border border-gray-100 transform transition-all">
+<h3 class="font-bold text-lg text-gray-900 mb-2 flex items-center gap-2">
+<i data-lucide="alert-triangle" class="w-5 h-5 text-red-500"></i> ยืนยันการลบเคส
+</h3>
+<p class="text-gray-600 text-sm mb-4">คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลผู้ป่วยรายนี้? การลบข้อมูลจะไม่สามารถกู้คืนได้</p>
+<div class="flex gap-3 justify-end">
+<button onclick="closeDeleteModal()" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 text-sm hover:bg-gray-50 font-medium">ยกเลิก</button>
+<button id="confirm-delete-btn" class="px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 font-medium">ลบออกทันที</button>
+</div>
+</div>
+</div>
+
+<script>
+// =============== LOGIN LOGIC ===============
+function performLogin(e) {
+    e.preventDefault();
+    var u = document.getElementById('login-username').value;
+    var p = document.getElementById('login-password').value;
+    
+    // ตั้งค่ารหัสผ่านเข้าสู่ระบบตรงนี้
+    if(u === 'admin' && p === '1234') {
+        sessionStorage.setItem('rabies_logged_in', 'true');
+        document.getElementById('login-panel').classList.add('hidden');
+        document.getElementById('main-app').classList.remove('hidden');
+        document.getElementById('login-error').classList.add('hidden');
+        initApp();
+    } else {
+        document.getElementById('login-error').classList.remove('hidden');
+    }
+}
+
+function performLogout() {
+    sessionStorage.removeItem('rabies_logged_in');
+    document.getElementById('main-app').classList.add('hidden');
+    document.getElementById('login-panel').classList.remove('hidden');
+    document.getElementById('login-password').value = '';
+}
+
+// =============== MAIN APP LOGIC ===============
+// Robust Mock Data SDK
+window.dataSdk = {
+init: async function(handler) {
+let data = [];
+try {
+data = JSON.parse(localStorage.getItem('rabies_records')) || [];
+} catch(e) {}
+if (data.length === 0) {
+data = [
+{
+__backendId: "mock-1",
+case_no: "1/2569",
+register_date: "2026-05-01",
+full_name: "นายสมชาย ใจดี",
+id_card: "3100201092811",
+gender: "ชาย",
+age: "45",
+marital_status: "คู่",
+occupation: "ธุรกิจส่วนตัว",
+phone: "089-1234567",
+address: "123 หมู่ 1 ต.แม่อาย อ.แม่อาย จ.เชียงใหม่",
+exposure_village_no: "1",
+exposure_village_name: "บ้านแม่อาย",
+exposure_tambon: "แม่อาย",
+exposure_amphoe: "แม่อาย",
+exposure_province: "เชียงใหม่",
+treatment_right: "บัตรทอง",
+animal_type: "สุนัข",
+exposure_method: "ถูกกัด",
+exposure_bleeding: "มีเลือดออก",
+exposure_location: "มือ",
+exposure_date: "2026-05-01",
+animal_ownership: "มีเจ้าของ",
+animal_vaccine_history: "ไม่เคยฉีด",
+bite_cause: "ไม่มีสาเหตุจูงใจ",
+wound_wash: "ล้าง",
+wound_wash_method: "น้ำและสบู่",
+antiseptic: "ใส่",
+antiseptic_type: "โพวีดีน/เบตาดีน (ไม่มีแอลกอฮอล์)",
+prev_vaccine_history: "ไม่เคยฉีด",
+treatment_order: "ฉีดวัคซีน ให้ครบ 3 เข็มพร้อมสังเกตอาการสุนัข 10 วันหลังถูกกัดหากสัตว์ปกติ ไม่ต้องฉีดเข็มที่ 4 และ 5 หากสัตว์ผิดปกติ หรือตายให้รายงานแพทย์",
+rig_given: "ฉีด",
+vaccine_route: "เข้ากล้ามเนื้อ (IM 0.5 ml)",
+status: "กำลังรักษา",
+nationality: "ไทย"
+},
+{
+__backendId: "mock-2",
+case_no: "2/2569",
+register_date: "2026-04-12",
+full_name: "นางสาวสมหญิง รักเรียน",
+id_card: "1234567890123",
+gender: "หญิง",
+age: "23",
+animal_type: "แมว",
+exposure_method: "ถูกข่วน",
+exposure_bleeding: "ไม่มีเลือดออก",
+exposure_location: "ขา",
+exposure_date: "2026-04-11",
+rig_given: "ไม่ฉีด",
+status: "ครบกำหนด",
+exposure_tambon: "แม่สาว",
+animal_vaccine_history: "เคยฉีด 1 ครั้ง",
+wound_wash: "ล้าง",
+antiseptic: "ไม่ใส่",
+nationality: "ไทย"
+},
+{
+__backendId: "mock-3",
+case_no: "3/2569",
+register_date: "2026-06-15",
+full_name: "ด.ช.มานะ รักดี",
+id_card: "1234567890124",
+gender: "ชาย",
+age: "8",
+animal_type: "สุนัข",
+exposure_method: "ถูกกัด",
+exposure_bleeding: "มีเลือดออก",
+exposure_location: "ขา",
+exposure_date: "2026-06-14",
+rig_given: "ไม่ฉีด",
+status: "ขาดนัดฉีดวัคซีน",
+exposure_tambon: "แม่อาย",
+animal_vaccine_history: "ไม่ทราบ",
+wound_wash: "ไม่ได้ล้าง",
+antiseptic: "ใส่",
+nationality: "เมียนมาร์"
+}
+];
+localStorage.setItem('rabies_records', JSON.stringify(data));
+}
+this.handler = handler;
+if (handler && typeof handler.onDataChanged === 'function') {
+handler.onDataChanged(data);
+}
+return { isOk: true };
+},
+create: async function(record) {
+let data = [];
+try { data = JSON.parse(localStorage.getItem('rabies_records')) || []; } catch(e){}
+record.__backendId = 'rec_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+data.push(record);
+localStorage.setItem('rabies_records', JSON.stringify(data));
+if (this.handler && typeof this.handler.onDataChanged === 'function') {
+this.handler.onDataChanged(data);
+}
+return { isOk: true };
+},
+update: async function(record) {
+let data = [];
+try { data = JSON.parse(localStorage.getItem('rabies_records')) || []; } catch(e){}
+let idx = data.findIndex(r => r.__backendId === record.__backendId);
+if (idx !== -1) {
+data[idx] = record;
+localStorage.setItem('rabies_records', JSON.stringify(data));
+if (this.handler && typeof this.handler.onDataChanged === 'function') {
+this.handler.onDataChanged(data);
+}
+return { isOk: true };
+}
+return { isOk: false, error: { message: 'เคสนี้ไม่พบในฐานข้อมูล' } };
+},
+delete: async function(record) {
+let data = [];
+try { data = JSON.parse(localStorage.getItem('rabies_records')) || []; } catch(e){}
+data = data.filter(r => r.__backendId !== record.__backendId);
+localStorage.setItem('rabies_records', JSON.stringify(data));
+if (this.handler && typeof this.handler.onDataChanged === 'function') {
+this.handler.onDataChanged(data);
+}
+return { isOk: true };
+}
+};
+
+let allRecords = [];
+let editingRecord = null;
+let deleteTarget = null;
+
+const allFields = [
+'case_no','register_date','id_card','nationality','hn','full_name','age','gender','marital_status','occupation','guardian_occupation','phone','address',
+'exposure_village_no','exposure_village_name','exposure_tambon','exposure_amphoe','exposure_province','exposure_date','treatment_right',
+'exposure_method','exposure_bleeding','exposure_location',
+'animal_type','animal_age','animal_ownership','animal_quarantine','animal_vaccine_history','animal_vaccine_detail','bite_cause','bite_cause_detail',
+'wound_wash','wound_wash_method','antiseptic','antiseptic_type','prev_vaccine_history','prev_vaccine_period','prev_vaccine_dose',
+'treatment_order','rig_given','erig_no','erig_exp','erig_weight','erig_iu','vaccine_route',
+'vaccine_1_date','vaccine_1_type','vaccine_1_lot','vaccine_1_dose','vaccine_1_person','vaccine_1_place',
+'vaccine_2_date','vaccine_2_type','vaccine_2_lot','vaccine_2_dose','vaccine_2_person','vaccine_2_place',
+'vaccine_3_date','vaccine_3_type','vaccine_3_lot','vaccine_3_dose','vaccine_3_person','vaccine_3_place',
+'vaccine_4_date','vaccine_4_type','vaccine_4_lot','vaccine_4_dose','vaccine_4_person','vaccine_4_place',
+'vaccine_5_date','vaccine_5_type','vaccine_5_lot','vaccine_5_dose','vaccine_5_person','vaccine_5_place',
+'close_case_3dose','animal_condition','doctor_name','reporter_name','report_date','status'
+];
+
+// Column Labels Mapping for Import / Export / Google Sheets
+const fieldLabels = {
+case_no: "เลขที่ Case", register_date: "วันที่ลงทะเบียน", id_card: "เลขประจำตัวประชาชน", nationality: "สัญชาติ", hn: "HN (รหัสผู้ป่วย)",
+full_name: "ชื่อ-สกุล", age: "อายุ (ปี)", gender: "เพศ", marital_status: "สถานภาพ", occupation: "อาชีพ", guardian_occupation: "อาชีพผู้ปกครอง (ถ้ามี)", phone: "เบอร์โทรศัพท์", address: "ที่อยู่ปัจจุบัน",
+exposure_village_no: "หมู่ที่ (ที่สัมผัสโรค)", exposure_village_name: "ชื่อหมู่บ้าน", exposure_tambon: "ตำบล", exposure_amphoe: "อำเภอ", exposure_province: "จังหวัด", exposure_date: "วันที่สัมผัสโรค", treatment_right: "สิทธิการรักษา",
+exposure_method: "ลักษณะการสัมผัส", exposure_bleeding: "เลือดออก", exposure_location: "ตำแหน่งที่ถูกสัมผัส",
+animal_type: "ประเภทสัตว์", animal_age: "อายุสัตว์", animal_ownership: "สถานภาพสัตว์", animal_quarantine: "การกักสัตว์", animal_vaccine_history: "ประวัติวัคซีนสัตว์", animal_vaccine_detail: "รายละเอียดวัคซีนสัตว์", bite_cause: "สาเหตุที่ถูกกัด", bite_cause_detail: "ระบุสาเหตุ",
+wound_wash: "4.1 การล้างแผล", wound_wash_method: "ล้างด้วย", antiseptic: "4.2 การใส่ยาฆ่าเชื้อ", antiseptic_type: "ชนิดยา", prev_vaccine_history: "4.3 ประวัติการฉีดวัคซีนป้องกันโรคพิษสุนัขบ้าของผู้สัมผัส", prev_vaccine_period: "ระยะเวลาล่าสุด", prev_vaccine_dose: "การฉีดกระตุ้น",
+treatment_order: "คำสั่งการรักษา", rig_given: "5.1 การฉีด RIG", erig_no: "ERIG No.", erig_exp: "Exp (วันหมดอายุ)", erig_weight: "นน.(Kg)", erig_iu: "จำนวนที่ฉีด (IU)", vaccine_route: "5.2 ชนิดและวิธีฉีดวัคซีน",
+vaccine_1_date: "ครั้งที่ 1 วันที่นัด/ฉีด", vaccine_1_type: "ครั้งที่ 1 ชนิดวัคซีน", vaccine_1_lot: "ครั้งที่ 1 Lot.no", vaccine_1_dose: "ครั้งที่ 1 ขนาด", vaccine_1_person: "ครั้งที่ 1 ชื่อผู้ฉีด", vaccine_1_place: "ครั้งที่ 1 สถานที่ฉีด",
+vaccine_2_date: "ครั้งที่ 2 วันที่นัด/ฉีด", vaccine_2_type: "ครั้งที่ 2 ชนิดวัคซีน", vaccine_2_lot: "ครั้งที่ 2 Lot.no", vaccine_2_dose: "ครั้งที่ 2 ขนาด", vaccine_2_person: "ครั้งที่ 2 ชื่อผู้ฉีด", vaccine_2_place: "ครั้งที่ 2 สถานที่ฉีด",
+vaccine_3_date: "ครั้งที่ 3 วันที่นัด/ฉีด", vaccine_3_type: "ครั้งที่ 3 ชนิดวัคซีน", vaccine_3_lot: "ครั้งที่ 3 Lot.no", vaccine_3_dose: "ครั้งที่ 3 ขนาด", vaccine_3_person: "ครั้งที่ 3 ชื่อผู้ฉีด", vaccine_3_place: "ครั้งที่ 3 สถานที่ฉีด",
+vaccine_4_date: "ครั้งที่ 4 วันที่นัด/ฉีด", vaccine_4_type: "ครั้งที่ 4 ชนิดวัคซีน", vaccine_4_lot: "ครั้งที่ 4 Lot.no", vaccine_4_dose: "ครั้งที่ 4 ขนาด", vaccine_4_person: "ครั้งที่ 4 ชื่อผู้ฉีด", vaccine_4_place: "ครั้งที่ 4 สถานที่ฉีด",
+vaccine_5_date: "ครั้งที่ 5 วันที่นัด/ฉีด", vaccine_5_type: "ครั้งที่ 5 ชนิดวัคซีน", vaccine_5_lot: "ครั้งที่ 5 Lot.no", vaccine_5_dose: "ครั้งที่ 5 ขนาด", vaccine_5_person: "ครั้งที่ 5 ชื่อผู้ฉีด", vaccine_5_place: "ครั้งที่ 5 สถานที่ฉีด",
+close_case_3dose: "ปิดเคส (ฉีดครบ 3 เข็ม)", animal_condition: "อาการสัตว์ (หลัง 10 วัน)", doctor_name: "ชื่อแพทย์ผู้สั่งการรักษา", reporter_name: "ชื่อผู้บันทึก/ผู้รายงาน", report_date: "วันที่บันทึกรายงาน", status: "สถานะผู้ป่วย"
+};
+
+const dataHandler = {
+onDataChanged(data) {
+allRecords = data || [];
+if (!document.getElementById('panel-search').classList.contains('hidden')) performSearch();
+if (!document.getElementById('panel-sheet').classList.contains('hidden')) renderSheetView();
+if (!document.getElementById('panel-dashboard').classList.contains('hidden')) updateDashboard();
+}
+};
+
+async function initApp() {
+const result = await window.dataSdk.init(dataHandler);
+if (!result.isOk) {
+showMessage('ไม่สามารถเชื่อมต่อฐานข้อมูลได้', 'error');
+}
+document.getElementById('f-register_date').value = new Date().toISOString().split('T')[0];
+setupConditionals();
+loadGoogleSheetsSettings();
+updateDashboard();
+}
+
+// Logic for handling conditional fields on Form
+function setupConditionals() {
+document.getElementById('f-animal_vaccine_history').addEventListener('change', function(e) {
+document.getElementById('animal-vaccine-detail-wrap').classList.toggle('hidden', e.target.value !== 'เคยฉีด 1 ครั้ง' && e.target.value !== 'เคยฉีดเกิน 1 ครั้ง');
+});
+document.getElementById('f-bite_cause').addEventListener('change', function(e) {
+document.getElementById('bite-cause-detail-wrap').classList.toggle('hidden', e.target.value !== 'มีสาเหตุจูงใจ');
+});
+document.getElementById('f-wound_wash').addEventListener('change', function(e) {
+document.getElementById('wash-method-wrap').classList.toggle('hidden', e.target.value !== 'ล้าง');
+});
+document.getElementById('f-antiseptic').addEventListener('change', function(e) {
+document.getElementById('antiseptic-type-wrap').classList.toggle('hidden', e.target.value !== 'ใส่');
+});
+document.getElementById('f-prev_vaccine_history').addEventListener('change', function(e) {
+var show = e.target.value === 'เคยฉีด';
+document.getElementById('prev-vaccine-period-wrap').classList.toggle('hidden', !show);
+document.getElementById('prev-vaccine-dose-wrap').classList.toggle('hidden', !show);
+if (!show) {
+    document.getElementById('f-prev_vaccine_period').value = '';
+    document.getElementById('f-prev_vaccine_dose').value = '';
+}
+});
+document.getElementById('f-prev_vaccine_period').addEventListener('change', function(e) {
+var doseSelect = document.getElementById('f-prev_vaccine_dose');
+var currentVal = doseSelect.value;
+doseSelect.innerHTML = '<option value="">-- เลือก --</option>';
+if (e.target.value === 'ภายใน 6 เดือน') {
+    doseSelect.innerHTML += '<option value="กระตุ้น 1 เข็ม (IM 0.5 ml)">กระตุ้น 1 เข็ม (IM 0.5 ml)</option>';
+    doseSelect.innerHTML += '<option value="กระตุ้น 1 เข็ม (ID 0.1 ml x 1 จุด)">กระตุ้น 1 เข็ม (ID 0.1 ml x 1 จุด)</option>';
+} else if (e.target.value === 'เกิน 6 เดือน') {
+    doseSelect.innerHTML += '<option value="กระตุ้น 2 เข็ม (IM 0.5 ml)">กระตุ้น 2 เข็ม (IM 0.5 ml)</option>';
+    doseSelect.innerHTML += '<option value="กระตุ้น 2 เข็ม (ID 0.1 ml x 1 จุด)">กระตุ้น 2 เข็ม (ID 0.1 ml x 1 จุด)</option>';
+}
+if (currentVal && doseSelect.querySelector('option[value="'+currentVal+'"]')) {
+    doseSelect.value = currentVal;
+}
+});
+document.getElementById('f-rig_given').addEventListener('change', function(e) {
+document.getElementById('rig-detail-wrap').classList.toggle('hidden', e.target.value !== 'ฉีด');
+});
+}
+
+document.getElementById('record-form').addEventListener('submit', async function(e) {
+e.preventDefault();
+
+if (allRecords.length >= 999 && !editingRecord) {
+showMessage('ข้อมูลเต็ม (สูงสุด 999 รายการ)', 'error'); return;
+}
+
+if (!document.getElementById('f-full_name').value.trim()) {
+showMessage('กรุณากรอกชื่อ-สกุล', 'error'); return;
+}
+
+var formData = {};
+allFields.forEach(function(f) {
+var el = document.getElementById('f-' + f);
+if (el) {
+var val = (el.value || '').toString().trim();
+if (val && val !== '' && val !== 'null' && val !== 'undefined') {
+formData[f] = val;
+}
+}
+});
+
+var btn = document.querySelector('[data-template-id="save-button"]');
+btn.disabled = true; btn.style.opacity = '0.5';
+
+var result;
+if (editingRecord) {
+var updated = Object.assign({}, editingRecord);
+delete updated.__backendId;
+updated.__backendId = editingRecord.__backendId;
+
+allFields.forEach(function(f) {
+var el = document.getElementById('f-' + f);
+if (el) {
+var val = (el.value || '').toString().trim();
+if (val && val !== '' && val !== 'null' && val !== 'undefined') { updated[f] = val; }
+else { delete updated[f]; }
+}
+});
+result = await window.dataSdk.update(updated);
+if (result.isOk) { sendToGoogleSheets(updated, "แก้ไขเคสสำเร็จ: " + updated.full_name); }
+} else {
+result = await window.dataSdk.create(formData);
+if (result.isOk) { sendToGoogleSheets(formData, "บันทึกเคสสำเร็จ: " + formData.full_name); }
+}
+
+btn.disabled = false; btn.style.opacity = '1';
+
+if (result.isOk) {
+showMessage(editingRecord ? 'แก้ไขข้อมูลสำเร็จแล้ว' : 'บันทึกข้อมูลสำเร็จแล้ว', 'success');
+editingRecord = null; clearForm(); switchTab('search');
+} else {
+showMessage('เกิดข้อผิดพลาดในการบันทึก กรุณาลองใหม่', 'error');
+}
+});
+
+// Google Sheets Integration Functions
+function saveGoogleSheetsSettings() {
+const urlInput = document.getElementById('gs-webhook-url').value.trim();
+if (urlInput && !urlInput.startsWith('https://script.google.com/')) { alert('URL ต้องขึ้นต้นด้วย https://script.google.com/'); return; }
+localStorage.setItem('gs_webhook_url', urlInput); updateGoogleSheetsUI(); showMessage('บันทึกการตั้งค่าแล้ว', 'success');
+}
+function loadGoogleSheetsSettings() {
+document.getElementById('gs-webhook-url').value = localStorage.getItem('gs_webhook_url') || ''; updateGoogleSheetsUI();
+}
+function updateGoogleSheetsUI() {
+const url = localStorage.getItem('gs_webhook_url') || '';
+const badge = document.getElementById('gs-status-badge');
+if (url) {
+badge.className = "bg-green-100 text-green-800 text-[10px] font-bold px-2.5 py-1 rounded-full uppercase flex items-center gap-1 border border-green-200";
+badge.innerHTML = `<span class="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse"></span> เชื่อมต่อแล้ว`;
+} else {
+badge.className = "bg-gray-100 text-gray-500 text-[10px] font-bold px-2.5 py-1 rounded-full uppercase border border-gray-200";
+badge.innerHTML = "ปิดการใช้งาน";
+}
+}
+async function sendToGoogleSheets(recordData, successLogText) {
+const url = localStorage.getItem('gs_webhook_url'); if (!url) return;
+const translatedRecord = {};
+allFields.forEach(f => { const label = fieldLabels[f] || f; translatedRecord[label] = recordData[f] != null ? recordData[f] : ''; });
+translatedRecord["รหัสเคสระบบ (ID)"] = recordData.__backendId || '';
+try { 
+    await fetch(url, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(translatedRecord) }); 
+    console.log(successLogText); 
+} catch (err) { console.error(err); }
+}
+async function testGoogleSheetsConnection() {
+const url = document.getElementById('gs-webhook-url').value.trim() || localStorage.getItem('gs_webhook_url'); 
+if (!url) { alert('กรุณากรอกและบันทึก URL ก่อนทำการทดสอบ'); return; }
+const testRecord = { "เลขที่ Case": "TEST/999", "วันที่ลงทะเบียน": new Date().toISOString().split('T')[0], "ชื่อ-สกุล": "ทดสอบระบบ รพ.แม่อาย", "อายุ (ปี)": "99", "สถานะผู้ป่วย": "เชื่อมต่อสำเร็จ" };
+try {
+showMessage("กำลังทดสอบ...", "info");
+await fetch(url, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(testRecord) });
+showMessage("ส่งข้อมูลทดสอบสำเร็จ!", "success");
+} catch (error) { showMessage("เชื่อมต่อล้มเหลว โปรดตรวจสอบลิงก์", "error"); }
+}
+
+function clearForm() {
+document.getElementById('record-form').reset();
+document.getElementById('f-register_date').value = new Date().toISOString().split('T')[0];
+document.getElementById('f-nationality').value = 'ไทย';
+document.getElementById('f-prev_vaccine_dose').innerHTML = '<option value="">-- เลือก --</option>';
+editingRecord = null;
+document.querySelector('[data-template-id="save-button"]').innerHTML = `<i data-lucide="save" class="w-4 h-4"></i> บันทึกข้อมูล`;
+['animal-vaccine-detail-wrap','bite-cause-detail-wrap','wash-method-wrap','antiseptic-type-wrap','prev-vaccine-period-wrap','prev-vaccine-dose-wrap','rig-detail-wrap'].forEach(id => document.getElementById(id).classList.add('hidden'));
+}
+
+function switchTab(tab) {
+// Hide Print Panel if switching tabs
+document.getElementById('panel-print-container').classList.add('hidden');
+['dashboard','record','search','sheet'].forEach(function(t) {
+document.getElementById('panel-' + t).classList.toggle('hidden', t !== tab);
+let tabBtn = document.getElementById('tab-' + t);
+if(tabBtn) tabBtn.className = (t === tab ? 'tab-active' : 'tab-inactive') + ' pb-2 px-3 cursor-pointer whitespace-nowrap flex items-center gap-1';
+});
+if (tab === 'dashboard') updateDashboard();
+if (tab === 'search') performSearch();
+if (tab === 'sheet') { renderSheetView(); loadGoogleSheetsSettings(); }
+}
+
+// --- DASHBOARD ---
+function updateDashboard() {
+// จัดการปี (Year Filter)
+var yearSelect = document.getElementById('dashboard-year-filter');
+var currentVal = yearSelect.value;
+var years = new Set();
+
+allRecords.forEach(r => {
+    if(r.register_date) years.add(r.register_date.substring(0,4));
+});
+
+var sortedYears = Array.from(years).sort().reverse();
+var optionsHtml = '<option value="all">ทุกปี</option>';
+sortedYears.forEach(y => {
+    var thYear = parseInt(y) + 543;
+    optionsHtml += `<option value="${y}">ปี ${thYear}</option>`;
+});
+yearSelect.innerHTML = optionsHtml;
+
+if(currentVal && yearSelect.querySelector(`option[value="${currentVal}"]`)){
+    yearSelect.value = currentVal;
+} else if (sortedYears.length > 0 && currentVal !== 'all') {
+    yearSelect.value = sortedYears[0]; // ค่าเริ่มต้นเป็นปีล่าสุด
+}
+
+var selectedYear = yearSelect.value;
+
+// กรองเรคคอร์ดตามปีที่เลือก
+var filteredRecords = selectedYear === 'all' 
+    ? allRecords 
+    : allRecords.filter(r => r.register_date && r.register_date.startsWith(selectedYear));
+
+document.getElementById('stat-total-val').textContent = filteredRecords.length;
+document.getElementById('stat-male-val').textContent = filteredRecords.filter(r => r.gender === 'ชาย').length;
+document.getElementById('stat-female-val').textContent = filteredRecords.filter(r => r.gender === 'หญิง').length;
+document.getElementById('stat-rig-val').textContent = filteredRecords.filter(r => r.rig_given === 'ฉีด').length;
+
+// เพิ่มข้อมูลสถานะผู้ป่วย
+document.getElementById('stat-status-active').textContent = filteredRecords.filter(r => r.status === 'กำลังรักษา').length;
+document.getElementById('stat-status-completed').textContent = filteredRecords.filter(r => r.status === 'ครบกำหนด' || r.status === 'ครบกำหนดการรักษา').length;
+document.getElementById('stat-status-missed').textContent = filteredRecords.filter(r => r.status === 'ขาดนัด' || r.status === 'ขาดนัดฉีดวัคซีน').length;
+
+// สร้างกราฟและรายการสถิติใหม่
+renderBarChart('chart-animal', 'animal_type', filteredRecords); 
+renderBarChart('chart-location', 'exposure_location', filteredRecords); 
+renderPercentageList('chart-tambon', 'exposure_tambon', filteredRecords);
+renderPercentageList('chart-animal-vaccine', 'animal_vaccine_history', filteredRecords);
+renderBehaviorStats('chart-behavior', filteredRecords);
+renderMonthlyChart(filteredRecords);
+}
+
+function renderBarChart(containerId, field, records) {
+var counts = {}; 
+var total = records.length;
+records.forEach(r => { var v = r[field]; if (!v || v.trim()==='') v = 'ไม่ระบุ'; counts[v] = (counts[v]||0) + 1; });
+var sorted = Object.entries(counts).sort((a,b) => b[1] - a[1]);
+var max = Math.max(...Object.values(counts), 1);
+
+if (total === 0) {
+    document.getElementById(containerId).innerHTML = '<p class="text-xs text-gray-400 mt-2">ไม่มีข้อมูล</p>';
+    return;
+}
+
+document.getElementById(containerId).innerHTML = sorted.map(e => {
+    var pct = ((e[1] / total) * 100).toFixed(1);
+    return `<div class="flex items-center gap-2"><span class="w-24 md:w-32 text-xs text-gray-600 truncate font-semibold">${e[0]}</span><div class="flex-1 bg-gray-100 rounded-full h-4 overflow-hidden"><div class="h-full bg-teal-500 rounded-full" style="width:${((e[1]/max)*100)}%"></div></div><span class="text-xs font-bold text-right text-gray-700 whitespace-nowrap min-w-[3.5rem]">${e[1]} <span class="text-[10px] text-teal-600">(${pct}%)</span></span></div>`;
+}).join('');
+}
+
+function renderPercentageList(containerId, field, records) {
+var counts = {};
+var total = 0;
+records.forEach(r => {
+    var v = r[field];
+    if (!v || v.trim() === '') v = 'ไม่ระบุ';
+    counts[v] = (counts[v] || 0) + 1;
+    total++;
+});
+
+var sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+var html = '';
+
+if (total === 0) {
+    document.getElementById(containerId).innerHTML = '<p class="text-xs text-gray-400 mt-2">ไม่มีข้อมูล</p>';
+    return;
+}
+
+sorted.forEach(e => {
+    var percent = ((e[1] / total) * 100).toFixed(1);
+    html += `
+    <div class="flex flex-col gap-1 mb-2">
+        <div class="flex justify-between text-xs">
+            <span class="font-semibold text-gray-700 truncate pr-2">${e[0]}</span>
+            <span class="text-gray-500 whitespace-nowrap">${e[1]} ราย <span class="font-bold text-teal-600">(${percent}%)</span></span>
+        </div>
+        <div class="w-full bg-gray-100 rounded-full h-2">
+            <div class="bg-teal-500 h-2 rounded-full" style="width: ${percent}%"></div>
+        </div>
+    </div>`;
+});
+document.getElementById(containerId).innerHTML = html;
+}
+
+function renderBehaviorStats(containerId, records) {
+var total = records.length;
+if(total === 0) {
+     document.getElementById(containerId).innerHTML = '<p class="text-xs text-gray-400 mt-2">ไม่มีข้อมูล</p>';
+     return;
+}
+
+var washCount = records.filter(r => r.wound_wash === 'ล้าง').length;
+var antiCount = records.filter(r => r.antiseptic === 'ใส่').length;
+
+var washPct = ((washCount / total) * 100).toFixed(1);
+var antiPct = ((antiCount / total) * 100).toFixed(1);
+
+var html = `
+    <div class="flex flex-col gap-1.5 mb-4">
+        <div class="flex justify-between text-xs">
+            <span class="font-semibold text-gray-700"><i data-lucide="droplets" class="w-3.5 h-3.5 inline text-blue-500 relative -top-0.5"></i> ล้างแผลหลังถูกกัด</span>
+            <span class="text-gray-500">${washCount} จาก ${total} ราย <span class="font-bold text-blue-600">(${washPct}%)</span></span>
+        </div>
+        <div class="w-full bg-gray-100 rounded-full h-2.5">
+            <div class="bg-blue-500 h-2.5 rounded-full" style="width: ${washPct}%"></div>
+        </div>
+    </div>
+    <div class="flex flex-col gap-1.5">
+        <div class="flex justify-between text-xs">
+            <span class="font-semibold text-gray-700"><i data-lucide="spray-can" class="w-3.5 h-3.5 inline text-indigo-500 relative -top-0.5"></i> ใส่ยาฆ่าเชื้อ</span>
+            <span class="text-gray-500">${antiCount} จาก ${total} ราย <span class="font-bold text-indigo-600">(${antiPct}%)</span></span>
+        </div>
+        <div class="w-full bg-gray-100 rounded-full h-2.5">
+            <div class="bg-indigo-500 h-2.5 rounded-full" style="width: ${antiPct}%"></div>
+        </div>
+    </div>
+`;
+document.getElementById(containerId).innerHTML = html;
+lucide.createIcons();
+}
+
+function renderMonthlyChart(records) {
+var months = {}; 
+var total = records.length;
+records.forEach(r => { if (r.exposure_date) { var m = r.exposure_date.substring(0,7); months[m] = (months[m]||0) + 1; } });
+var sorted = Object.entries(months).sort((a,b) => a[0].localeCompare(b[0]));
+var c = document.getElementById('chart-monthly');
+
+if (!sorted.length) { 
+    c.innerHTML = '<p class="text-gray-400 text-xs m-auto flex h-full items-center justify-center">ไม่มีประวัติสำหรับปีที่เลือก</p>'; 
+    return; 
+}
+
+var max = Math.max(...sorted.map(x => x[1]), 1);
+const w = 100, h = 40;
+let points = [];
+let labels = '';
+let elements = '';
+
+if(sorted.length === 1) {
+    let e = sorted[0];
+    let pct = ((e[1] / total) * 100).toFixed(1);
+    let yearTh = (parseInt(e[0].substring(0,4)) + 543).toString().substring(2,4); // คำนวณปี พ.ศ. 2 หลัก
+    let monthNum = e[0].substring(5);
+    let x = 50, y = h - (e[1]/max)*h*0.8;
+    points.push(`${x},${y}`);
+    labels += `<div class="absolute bottom-0 text-[10px] font-semibold text-gray-500 text-center" style="left:50%; transform:translateX(-50%); line-height:1.2;">${monthNum}/${yearTh}<br><span class="text-[8px] text-teal-600 font-bold">(${pct}%)</span></div>`;
+    elements += `<circle cx="${x}" cy="${y}" r="2" fill="#0d9488"/><text x="${x}" y="${y-4}" font-size="4" fill="#0f766e" text-anchor="middle" font-weight="bold">${e[1]}</text>`;
+} else {
+    let gap = w / (sorted.length - 1);
+    sorted.forEach((e, i) => {
+        let pct = ((e[1] / total) * 100).toFixed(1);
+        let yearTh = (parseInt(e[0].substring(0,4)) + 543).toString().substring(2,4); // คำนวณปี พ.ศ. 2 หลัก
+        let monthNum = e[0].substring(5);
+        let x = i * gap;
+        let y = h - (e[1]/max)*h*0.8;
+        points.push(`${x},${y}`);
+        labels += `<div class="absolute bottom-0 text-[10px] font-semibold text-gray-500 text-center" style="left:${x}%; transform:translateX(-50%); line-height:1.2;">${monthNum}/${yearTh}<br><span class="text-[8px] text-teal-600 font-bold">(${pct}%)</span></div>`;
+        elements += `<circle cx="${x}" cy="${y}" r="1.5" fill="#0d9488"/><text x="${x}" y="${y-3}" font-size="3.5" fill="#0f766e" text-anchor="middle" font-weight="bold">${e[1]}</text>`;
+    });
+}
+
+let polyline = `<polyline points="${points.join(' ')}" fill="none" stroke="#14b8a6" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>`;
+let fillArea = '';
+if(sorted.length > 1) {
+    fillArea = `<polygon points="0,${h} ${points.join(' ')} ${w},${h}" fill="url(#lineGrad)" opacity="0.3"/>`;
+}
+
+c.innerHTML = `
+<div class="relative w-full h-full pb-7 pt-1">
+    <svg viewBox="0 -5 100 50" class="w-full h-full overflow-visible" preserveAspectRatio="none">
+        <defs>
+            <linearGradient id="lineGrad" x1="0" x2="0" y1="0" y2="1">
+                <stop offset="0%" stop-color="#14b8a6" />
+                <stop offset="100%" stop-color="#f0fdfa" stop-opacity="0" />
+            </linearGradient>
+        </defs>
+        ${fillArea}
+        ${polyline}
+        ${elements}
+    </svg>
+    ${labels}
+</div>`;
+}
+
+// --- SEARCH ---
+function performSearch() {
+var q = document.getElementById('search-input').value.trim().toLowerCase();
+var filtered = q ? allRecords.filter(r => (r.full_name||'').toLowerCase().includes(q) || (r.id_card||'').includes(q) || (r.case_no||'').toLowerCase().includes(q)) : allRecords;
+renderSearchResults(filtered);
+}
+function renderSearchResults(records) {
+var c = document.getElementById('search-results');
+if (!records.length) { c.innerHTML = '<p class="text-gray-500 text-center py-8">ไม่พบข้อมูล</p>'; return; }
+c.innerHTML = records.map(r => `
+<div class="bg-white border rounded-lg p-4 shadow-sm hover:shadow transition-all">
+<div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+<div class="flex-1">
+<div class="flex items-center gap-2 flex-wrap">
+<span class="bg-teal-100 text-teal-800 text-xs font-semibold px-2 py-0.5 rounded">Case: ${r.case_no || '-'}</span>
+<p class="font-bold text-gray-900 text-base">${r.full_name || '-'}</p>
+</div>
+<p class="text-xs text-gray-500 mt-2 flex flex-wrap gap-x-4 gap-y-1">
+<span><b>เลขบัตร:</b> ${r.id_card || '-'}</span>
+<span><b>เพศ/อายุ:</b> ${r.gender || '-'}/${r.age || '-'} ปี</span>
+<span><b>วันที่สัมผัส:</b> ${r.exposure_date || '-'}</span>
+</p>
+</div>
+<div class="flex gap-2 w-full sm:w-auto justify-end flex-wrap">
+<button onclick="editRecord('${r.__backendId}')" class="bg-blue-50 hover:bg-blue-100 text-blue-700 px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 border border-blue-200 transition-all shadow-sm" title="แก้ไข">
+<i data-lucide="edit-3" class="w-3.5 h-3.5"></i> แก้ไข
+</button>
+<button onclick="preparePrint('${r.__backendId}')" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 border border-indigo-200 transition-all shadow-sm" title="พิมพ์บัตร">
+<i data-lucide="printer" class="w-3.5 h-3.5"></i> พิมพ์บัตร
+</button>
+<button onclick="requestDelete('${r.__backendId}')" class="bg-red-50 hover:bg-red-100 text-red-700 px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 border border-red-200 transition-all shadow-sm" title="ลบเคส">
+<i data-lucide="trash-2" class="w-3.5 h-3.5"></i> ลบ
+</button>
+</div>
+</div>
+</div>`).join('');
+lucide.createIcons();
+}
+
+// --- SHEET VIEW & EXPORT ---
+function renderSheetView() {
+var q = document.getElementById('sheet-search-input').value.trim().toLowerCase();
+var filtered = q ? allRecords.filter(r => (r.full_name||'').toLowerCase().includes(q) || (r.id_card||'').includes(q) || (r.case_no||'').toLowerCase().includes(q)) : allRecords;
+document.getElementById('sheet-count-badge').textContent = 'พบ ' + filtered.length + ' แถว';
+var tbody = document.getElementById('sheet-rows-body');
+if (!filtered.length) { tbody.innerHTML = `<tr><td colspan="17" class="text-center py-8 text-gray-400">ไม่พบแถวข้อมูล</td></tr>`; return; }
+tbody.innerHTML = filtered.map((r, i) => `
+<tr class="hover:bg-teal-50/40">
+<td class="px-3 py-2 text-center bg-slate-50 border-r border-gray-200 sticky left-0 font-bold text-gray-500">${i + 1}</td>
+<td class="px-3 py-2 border-r border-gray-150 font-semibold text-teal-800">${r.case_no || '-'}</td>
+<td class="px-3 py-2 border-r border-gray-150 text-gray-500">${r.register_date || '-'}</td>
+<td class="px-3 py-2 border-r border-gray-150 font-bold text-gray-900">${r.full_name || '-'}</td>
+<td class="px-3 py-2 border-r border-gray-150 text-gray-600 font-mono">${r.id_card || '-'}</td>
+<td class="px-3 py-2 border-r border-gray-150 text-gray-600">${r.hn || '-'}</td>
+<td class="px-3 py-2 border-r border-gray-150 text-gray-600 text-center">${r.age || '-'}</td>
+<td class="px-3 py-2 border-r border-gray-150 text-gray-600 text-center">${r.gender || '-'}</td>
+<td class="px-3 py-2 border-r border-gray-150 text-gray-600 font-mono">${r.phone || '-'}</td>
+<td class="px-3 py-2 border-r border-gray-150 text-gray-500">${r.exposure_date || '-'}</td>
+<td class="px-3 py-2 border-r border-gray-150 text-gray-700">${r.animal_type || '-'}</td>
+<td class="px-3 py-2 border-r border-gray-150 text-gray-600">${r.exposure_location || '-'}</td>
+<td class="px-3 py-2 border-r border-gray-150 text-gray-600">${r.prev_vaccine_history || '-'}</td>
+<td class="px-3 py-2 border-r border-gray-150 text-center"><span class="px-2 py-0.5 rounded text-[10px] font-semibold ${r.rig_given === 'ฉีด' ? 'bg-orange-100 text-orange-800' : 'bg-gray-100 text-gray-600'}">${r.rig_given || 'ไม่ระบุ'}</span></td>
+<td class="px-3 py-2 border-r border-gray-150 text-gray-600">${r.vaccine_route || '-'}</td>
+<td class="px-3 py-2 border-r border-gray-150"><span class="px-2 py-0.5 rounded text-[10px] font-bold ${r.status === 'ครบกำหนด' || r.status === 'ครบกำหนดการรักษา' ? 'bg-green-100 text-green-800' : r.status === 'ขาดนัด' || r.status === 'ขาดนัดฉีดวัคซีน' ? 'bg-red-100 text-red-800' : 'bg-amber-100 text-amber-800'}">${r.status || 'กำลังรักษา'}</span></td>
+<td class="px-4 py-1 text-center sticky right-0 bg-white border-l border-gray-200">
+<div class="flex items-center justify-center gap-1">
+<button onclick="editRecord('${r.__backendId}')" class="text-blue-600 p-1 bg-blue-50 rounded" title="แก้ไข"><i data-lucide="edit-3" class="w-3.5 h-3.5"></i></button>
+<button onclick="requestDelete('${r.__backendId}')" class="text-red-600 p-1 bg-red-50 rounded" title="ลบ"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
+</div>
+</td>
+</tr>`).join('');
+lucide.createIcons();
+}
+
+function exportExcel() {
+if (!allRecords.length) { showMessage('ไม่มีข้อมูลให้ส่งออก', 'error'); return; }
+var data = allRecords.map(r => { var row = {}; allFields.forEach(f => { row[fieldLabels[f] || f] = r[f] != null ? r[f] : ''; }); return row; });
+var ws = XLSX.utils.json_to_sheet(data); var wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'ข้อมูล'); XLSX.writeFile(wb, 'rabies_exposure.xlsx');
+}
+async function handleExcelImport(event) {
+const file = event.target.files[0]; if (!file) return;
+const reader = new FileReader();
+reader.onload = async function(e) {
+try {
+const data = new Uint8Array(e.target.result); const wb = XLSX.read(data, { type: 'array' });
+const imported = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+if (!imported.length) { showMessage('ไม่พบข้อมูล', 'error'); return; }
+let success = 0, fail = 0; const l2k = {}; Object.entries(fieldLabels).forEach(([k, l]) => l2k[l.trim()] = k);
+for (let row of imported) {
+let rec = {};
+Object.entries(row).forEach(([l, v]) => { if (l2k[l.trim()] && v != null) rec[l2k[l.trim()]] = v.toString().trim(); });
+if (rec.full_name) {
+if (rec.register_date && !isNaN(rec.register_date)) rec.register_date = ExcelDateToJSDate(rec.register_date);
+if (rec.exposure_date && !isNaN(rec.exposure_date)) rec.exposure_date = ExcelDateToJSDate(rec.exposure_date);
+const res = await window.dataSdk.create(rec);
+if (res.isOk) { success++; sendToGoogleSheets(rec, "นำเข้า: " + rec.full_name); } else fail++;
+} else fail++;
+}
+showMessage(`สำเร็จ ${success} (ล้มเหลว ${fail})`, success > 0 ? 'success' : 'error'); event.target.value = '';
+} catch (err) { showMessage('ข้อผิดพลาด', 'error'); }
+};
+reader.readAsArrayBuffer(file);
+}
+function ExcelDateToJSDate(serial) {
+const date = new Date((Math.floor(serial - 25569) * 86400) * 1000);
+return `${date.getFullYear()}-${("0" + (date.getMonth() + 1)).slice(-2)}-${("0" + date.getDate()).slice(-2)}`;
+}
+
+// --- EDIT & DELETE ---
+function editRecord(id) {
+var r = allRecords.find(x => x.__backendId === id); if (!r) return;
+editingRecord = r;
+allFields.forEach(f => { var el = document.getElementById('f-' + f); if (el) el.value = (r[f] != null) ? r[f] : ''; });
+if (r.animal_vaccine_history && r.animal_vaccine_history.includes('เคยฉีด')) document.getElementById('animal-vaccine-detail-wrap').classList.remove('hidden');
+if (r.bite_cause === 'มีสาเหตุจูงใจ') document.getElementById('bite-cause-detail-wrap').classList.remove('hidden');
+if (r.wound_wash === 'ล้าง') document.getElementById('wash-method-wrap').classList.remove('hidden');
+if (r.antiseptic === 'ใส่') document.getElementById('antiseptic-type-wrap').classList.remove('hidden');
+if (r.prev_vaccine_history === 'เคยฉีด') { 
+    document.getElementById('prev-vaccine-period-wrap').classList.remove('hidden'); 
+    document.getElementById('prev-vaccine-dose-wrap').classList.remove('hidden'); 
+    
+    // Trigger change on period select to generate options for dose select
+    var periodSelect = document.getElementById('f-prev_vaccine_period');
+    periodSelect.value = r.prev_vaccine_period || '';
+    periodSelect.dispatchEvent(new Event('change'));
+    
+    // Now set the dose value
+    document.getElementById('f-prev_vaccine_dose').value = r.prev_vaccine_dose || '';
+}
+if (r.rig_given === 'ฉีด') document.getElementById('rig-detail-wrap').classList.remove('hidden');
+document.querySelector('[data-template-id="save-button"]').innerHTML = `<i data-lucide="check" class="w-4 h-4"></i> ยืนยันแก้ไขข้อมูล`;
+switchTab('record'); showMessage('แก้ไขข้อมูล: ' + r.full_name, 'info');
+}
+
+function requestDelete(id) { deleteTarget = allRecords.find(x => x.__backendId === id); document.getElementById('delete-modal').classList.remove('hidden'); }
+function closeDeleteModal() { document.getElementById('delete-modal').classList.add('hidden'); deleteTarget = null; }
+document.getElementById('confirm-delete-btn').addEventListener('click', async function() {
+if (!deleteTarget) return;
+this.disabled = true; this.textContent = 'กำลังลบ...';
+var res = await window.dataSdk.delete(deleteTarget);
+this.disabled = false; this.textContent = 'ลบออกทันที';
+closeDeleteModal();
+if (res.isOk) { showMessage('ลบสำเร็จ', 'success'); performSearch(); } else showMessage('ผิดพลาด', 'error');
+});
+
+// --- PRINT MODULE (A4 Generation) ---
+function ck(val, expected) { return (val === expected || (val||'').includes(expected)) ? 'checked' : ''; }
+function rb(val, expected) { return val === expected ? 'checked' : ''; }
+
+function preparePrint(id) {
+const r = allRecords.find(x => x.__backendId === id);
+if(!r) return;
+
+// Hide other panels
+['dashboard','record','search','sheet'].forEach(t => document.getElementById('panel-' + t).classList.add('hidden'));
+
+// Generate A4 HTML Template mapping (บีบอัด Layout อย่างละเอียดที่สุด)
+const a4 = document.getElementById('printable-a4');
+a4.innerHTML = `
+<div class="flex justify-between items-end mb-1 border-b border-gray-800 pb-1">
+<div class="flex items-center gap-2">
+<img src="โลโก้หน่วยงาน รพ.แม่อาย.jpg" alt="Logo" class="w-12 h-12 object-contain logo-blend" onerror="this.style.display='none'">
+<div class="font-bold text-[15px]">บัตรบันทึกผู้สัมผัสหรือสงสัยว่าสัมผัสโรคพิษสุนัขบ้า<br><span class="text-[12px]">รพ.แม่อาย</span></div>
+</div>
+<div class="text-right text-[12px] font-bold">
+<div>ลำดับ: <span class="border-b border-dashed border-gray-500 min-w-[80px] inline-block text-center">${r.case_no || '-'}</span></div>
+<div class="mt-0.5">วันที่ลงทะเบียน: <span class="border-b border-dashed border-gray-500 min-w-[80px] inline-block text-center">${r.register_date ? r.register_date.split('-').reverse().join('/') : '-'}</span></div>
+</div>
+</div>
+
+<div class="font-bold bg-gray-200 px-2 py-0.5 mb-1 mt-1.5 text-[13px]">ส่วนที่ 1 ข้อมูลทั่วไป</div>
+<div class="grid grid-cols-12 gap-x-2 gap-y-0.5 mb-1 px-1 text-[11px] leading-tight">
+<div class="col-span-5">เลขประจำตัวประชาชน: <span class="font-mono border-b border-dotted border-gray-500">${r.id_card || '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'}</span></div>
+<div class="col-span-3">สัญชาติ: <span class="border-b border-dotted border-gray-500">${r.nationality || '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'}</span></div>
+<div class="col-span-4">HN: <span class="border-b border-dotted border-gray-500">${r.hn || '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'}</span></div>
+
+<div class="col-span-6 mt-1">1.1 ชื่อ-สกุล: <span class="border-b border-dotted border-gray-500 font-bold text-[13px]">${r.full_name || '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'}</span></div>
+<div class="col-span-2 mt-1">อายุ: <span class="border-b border-dotted border-gray-500">${r.age || '&nbsp;&nbsp;&nbsp;'}</span> ปี</div>
+<div class="col-span-4 flex gap-1 items-center mt-1">
+<span>เพศ:</span>
+<span class="radio-box-icon ${rb(r.gender,'ชาย')}"></span>ชาย
+<span class="radio-box-icon ${rb(r.gender,'หญิง')}"></span>หญิง
+</div>
+
+<div class="col-span-5 flex gap-1 items-center mt-0.5">
+<span>สถานภาพ:</span>
+<span class="radio-box-icon ${rb(r.marital_status,'โสด')}"></span>โสด
+<span class="radio-box-icon ${rb(r.marital_status,'คู่')}"></span>คู่
+<span class="radio-box-icon ${rb(r.marital_status,'หย่าร้าง')}"></span>หย่าร้าง
+<span class="radio-box-icon ${rb(r.marital_status,'หม้าย')}"></span>หม้าย
+</div>
+<div class="col-span-7 mt-0.5">อาชีพ: <span class="border-b border-dotted border-gray-500">${r.occupation || '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'}</span> อาชีพผู้ปกครอง: <span class="border-b border-dotted border-gray-500">${r.guardian_occupation || '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'}</span></div>
+
+<div class="col-span-12 mt-0.5">ที่อยู่: <span class="border-b border-dotted border-gray-500">${r.address || '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'}</span> โทร: <span class="border-b border-dotted border-gray-500">${r.phone || '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'}</span></div>
+<div class="col-span-12 mt-0.5">1.2 สถานที่สัมผัสโรค หมู่: <span class="border-b border-dotted border-gray-500">${r.exposure_village_no||'&nbsp;&nbsp;&nbsp;'}</span> ชื่อหมู่บ้าน: <span class="border-b border-dotted border-gray-500">${r.exposure_village_name||'&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'}</span>
+ตำบล: <span class="border-b border-dotted border-gray-500">${r.exposure_tambon||'&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'}</span> อำเภอ: <span class="border-b border-dotted border-gray-500">${r.exposure_amphoe||'&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'}</span> จ. ${r.exposure_province||'เชียงใหม่'}</div>
+<div class="col-span-6 mt-0.5">1.3 วันที่สัมผัสโรค: <span class="border-b border-dotted border-gray-500">${r.exposure_date ? r.exposure_date.split('-').reverse().join('/') : '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'}</span></div>
+<div class="col-span-6 mt-0.5">สิทธิการรักษา: <span class="border-b border-dotted border-gray-500">${r.treatment_right||'&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'}</span></div>
+</div>
+
+<div class="font-bold bg-gray-200 px-2 py-0.5 mb-1 mt-1.5 text-[13px]">ส่วนที่ 2 : ตำแหน่งและลักษณะการสัมผัส</div>
+<div class="flex gap-4 px-1 mb-1.5 text-[11px]">
+<div class="flex-1">
+<table class="print-table w-full">
+<thead>
+<tr>
+<th rowspan="2" class="py-0.5 w-8">ลำดับ<br>ที่</th>
+<th rowspan="2">ตำแหน่งที่<br>สัมผัสโรค</th>
+<th colspan="3">ลักษณะการสัมผัส</th>
+</tr>
+<tr>
+<th class="py-0.5">ถูกกัด<br><span class="text-[9px] font-normal">(มี/ไม่มีเลือด)</span></th>
+<th>ถูกข่วน<br><span class="text-[9px] font-normal">(มี/ไม่มีเลือด)</span></th>
+<th>ถูกเลีย/น้ำลาย<br><span class="text-[9px] font-normal">(มี/ไม่มีเลือด)</span></th>
+</tr>
+</thead>
+<tbody>
+${['ศีรษะ','หน้า','ลำคอ','มือ','แขน','ลำตัว','ขา','เท้า'].map((loc, idx) => `
+<tr>
+<td class="text-center py-0.5">${idx+1}</td>
+<td class="py-0.5">${loc} ${r.exposure_location === loc ? '<b>(☑)</b>' : ''}</td>
+<td class="text-center py-0.5">${(r.exposure_location === loc && r.exposure_method === 'ถูกกัด') ? r.exposure_bleeding||'✔' : ''}</td>
+<td class="text-center py-0.5">${(r.exposure_location === loc && r.exposure_method === 'ถูกข่วน') ? r.exposure_bleeding||'✔' : ''}</td>
+<td class="text-center py-0.5">${(r.exposure_location === loc && r.exposure_method === 'ถูกเลีย/น้ำลาย') ? r.exposure_bleeding||'✔' : ''}</td>
+</tr>`).join('')}
+<tr>
+<td class="text-center py-0.5">9</td>
+<td colspan="4" class="py-0.5">กินอาหารดิบหรือน้ำที่ปนเปื้อนเชื้อ ${r.exposure_location === 'กินอาหารดิบหรือน้ำที่ปนเปื้อน' ? '<b>(☑)</b>' : ''}</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="w-[100px] shrink-0 border border-gray-300 rounded p-1 flex flex-col justify-center items-center bg-white">
+<img src="image_3f0793.png.png" alt="โครงร่างร่างกาย" class="w-full object-contain" style="mix-blend-mode: multiply;" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+<div style="display:none;" class="text-[9px] text-red-500 text-center font-semibold mt-1">
+<i data-lucide="image-off" class="w-6 h-6 mx-auto mb-0.5 opacity-70"></i>
+ไม่พบรูปโครงร่าง
+</div>
+<span class="text-[8px] text-gray-500 mt-1 leading-tight text-center">(ทำเครื่องหมาย<br>ตำแหน่งสัมผัส)</span>
+</div>
+</div>
+
+<div class="font-bold bg-gray-200 px-2 py-0.5 mb-1.5 mt-1.5 text-[13px]">ส่วนที่ 3 ข้อมูลของสัตว์ที่สัมผัส และ ส่วนที่ 4 การดูแลรักษาผู้สัมผัส</div>
+<div class="grid grid-cols-12 gap-x-4 gap-y-1 mb-1 px-1 text-[11px] leading-tight">
+<div class="col-span-7">
+<div class="mb-1"><b>3.1 สัตว์นำโรค:</b>
+<span class="radio-box-icon ${rb(r.animal_type,'สุนัข')}"></span>สุนัข
+<span class="radio-box-icon ${rb(r.animal_type,'แมว')}"></span>แมว
+<span class="radio-box-icon ${rb(r.animal_type,'หนู')}"></span>หนู<br>
+<div class="pl-4 mt-0.5">
+<span class="radio-box-icon ${rb(r.animal_type,'ชะนี/ลิง/ค่าง')}"></span>ชะนี/ลิง/ค่าง
+<span class="radio-box-icon ${['ค้างคาว','กระรอก/กระแต/กระต่าย','สุกร','อื่นๆ'].includes(r.animal_type)?'checked':''}"></span>อื่นๆ
+</div>
+</div>
+<div class="mb-1"><b>อายุสัตว์:</b>
+<span class="radio-box-icon ${rb(r.animal_age,'น้อยกว่า 3 เดือน')}"></span><3 ด.
+<span class="radio-box-icon ${rb(r.animal_age,'3-6 เดือน')}"></span>3-6 ด.
+<span class="radio-box-icon ${rb(r.animal_age,'มากกว่า 1 ปี')}"></span>>1 ปี
+<span class="radio-box-icon ${rb(r.animal_age,'ไม่ทราบ')}"></span>ไม่ทราบ
+</div>
+<div class="mb-1"><b>3.2 สถานภาพสัตว์:</b>
+<span class="radio-box-icon ${rb(r.animal_ownership,'มีเจ้าของ')}"></span>มีเจ้าของ
+<span class="radio-box-icon ${rb(r.animal_ownership,'ไม่มีเจ้าของ')}"></span>ไม่มีเจ้าของ
+<span class="radio-box-icon ${rb(r.animal_ownership,'ไม่ทราบ')}"></span>ไม่ทราบ
+</div>
+<div class="mb-1"><b>3.3 การกักสัตว์:</b>
+<span class="radio-box-icon ${rb(r.animal_quarantine,'กักขังได้')}"></span>กักได้
+<span class="radio-box-icon ${rb(r.animal_quarantine,'กักขังไม่ได้')}"></span>กักไม่ได้
+<span class="radio-box-icon ${rb(r.animal_quarantine,'ถูกฆ่าตาย')}"></span>ตาย
+<span class="radio-box-icon ${rb(r.animal_quarantine,'หนีหาย/จำไม่ได้')}"></span>หนีหาย
+</div>
+<div class="mb-1"><b>3.4 ประวัติวัคซีนสัตว์:</b>
+<span class="radio-box-icon ${rb(r.animal_vaccine_history,'ไม่ทราบ')}"></span>ไม่ทราบ
+<span class="radio-box-icon ${rb(r.animal_vaccine_history,'ไม่เคยฉีด')}"></span>ไม่เคย
+<span class="radio-box-icon ${ck(r.animal_vaccine_history,'เคยฉีด')}"></span>เคยฉีด
+<div class="pl-4 mt-0.5 text-[10px] text-gray-700">
+( <span class="radio-box-icon ${rb(r.animal_vaccine_detail,'ภายใน 1 ปี')}"></span>ภายใน 1 ปี <span class="radio-box-icon ${rb(r.animal_vaccine_detail,'เกิน 1 ปี')}"></span>เกิน 1 ปี )
+</div>
+</div>
+<div class="mb-0.5"><b>3.5 สาเหตุที่ถูกกัด:</b>
+<span class="radio-box-icon ${rb(r.bite_cause,'ไม่มีสาเหตุจูงใจ')}"></span>ไม่มีสาเหตุจูงใจ
+<span class="radio-box-icon ${rb(r.bite_cause,'มีสาเหตุจูงใจ')}"></span>มีสาเหตุจูงใจ
+</div>
+<div class="pl-4 mt-0.5 text-[10px] text-gray-700 grid grid-cols-2 gap-x-1 gap-y-0.5">
+<div><span class="check-box-icon ${rb(r.bite_cause_detail,'ทำให้สัตว์เจ็บปวด/โมโห')}"></span>ทำให้สัตว์เจ็บปวด/โมโห</div>
+<div><span class="check-box-icon ${rb(r.bite_cause_detail,'แยกสัตว์ที่กำลังต่อสู้')}"></span>แยกสัตว์ต่อสู้</div>
+<div><span class="check-box-icon ${rb(r.bite_cause_detail,'เข้าใกล้สัตว์แม่ลูกอ่อน')}"></span>เข้าใกล้แม่ลูกอ่อน</div>
+<div><span class="check-box-icon ${rb(r.bite_cause_detail,'รบกวนสัตว์ขณะกินข้าว')}"></span>รบกวนตอนกินข้าว</div>
+<div class="col-span-2"><span class="check-box-icon ${rb(r.bite_cause_detail,'เข้าไปในบริเวณที่สัตว์เป็นเจ้าของ')}"></span>บุกรุกถิ่นสัตว์</div>
+</div>
+</div>
+
+<div class="col-span-5">
+<div class="mb-1"><b>4.1 การล้างแผล:</b>
+<span class="radio-box-icon ${rb(r.wound_wash,'ไม่ได้ล้าง')}"></span>ไม่ได้ล้าง
+<span class="radio-box-icon ${rb(r.wound_wash,'ล้าง')}"></span>ล้าง
+<div class="pl-4 mt-0.5 text-[10px] text-gray-700">
+( <span class="radio-box-icon ${rb(r.wound_wash_method,'น้ำ')}"></span>น้ำ <span class="radio-box-icon ${rb(r.wound_wash_method,'น้ำและสบู่')}"></span>น้ำ+สบู่ )
+</div>
+</div>
+<div class="mb-1 mt-2"><b>4.2 การใส่ยาฆ่าเชื้อ:</b>
+<span class="radio-box-icon ${rb(r.antiseptic,'ไม่ใส่')}"></span>ไม่ใส่
+<span class="radio-box-icon ${rb(r.antiseptic,'ใส่')}"></span>ใส่
+<div class="pl-4 mt-0.5 text-[10px] text-gray-700 flex flex-col gap-0.5">
+<div><span class="check-box-icon ${ck(r.antiseptic_type,'โพวีดีน')}"></span>โพวีดีน/เบตาดีน</div>
+<div><span class="check-box-icon ${ck(r.antiseptic_type,'แอลกอฮอล์')}"></span>ทิงเจอร์/แอลกอฮอล์</div>
+</div>
+</div>
+<div class="mb-0.5 mt-2"><b>4.3 ประวัติวัคซีนป้องกันพิษสุนัขบ้า:</b>
+<div class="pl-4 mt-0.5">
+    <span class="radio-box-icon ${rb(r.prev_vaccine_history,'ไม่เคยฉีด')}"></span>ไม่เคย
+    <span class="radio-box-icon ${rb(r.prev_vaccine_history,'เคยฉีด')}"></span>เคยฉีด
+</div>
+<div class="pl-4 mt-0.5 text-[10px] text-gray-700 flex flex-col gap-0.5">
+<div><span class="radio-box-icon ${rb(r.prev_vaccine_period,'ภายใน 6 เดือน')}"></span>ภายใน 6 ด. <span class="radio-box-icon ml-1 ${rb(r.prev_vaccine_period,'เกิน 6 เดือน')}"></span>เกิน 6 ด.</div>
+<div><span class="radio-box-icon ${ck(r.prev_vaccine_dose,'กระตุ้น 1 เข็ม')}"></span>กระตุ้น 1 เข็ม <span class="radio-box-icon ml-1 ${ck(r.prev_vaccine_dose,'กระตุ้น 2 เข็ม')}"></span>กระตุ้น 2 เข็ม</div>
+<div class="mt-0.5 border-l-2 border-gray-300 pl-1.5 ml-1 flex gap-2">
+<span><span class="radio-box-icon ${ck(r.prev_vaccine_dose,'IM')}"></span>IM 0.5 ml</span>
+<span><span class="radio-box-icon ${ck(r.prev_vaccine_dose,'ID')}"></span>ID 0.1 ml x 1 จุด</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<div class="font-bold bg-gray-200 px-2 py-0.5 mb-1 mt-1.5 text-[13px]">ส่วนที่ 5 การฉีดวัคซีนอิมมูโนโกลบุลินและวัคซีนในครั้งนี้</div>
+<div class="mb-1.5 px-1 text-[11px]">
+<b>คำสั่งการรักษา:</b><br>
+<div class="pl-4 leading-tight mt-0.5">
+<span class="radio-box-icon ${ck(r.treatment_order,'ไม่ฉีดวัคซีน สังเกต')}"></span> ไม่ฉีดวัคซีน สังเกตอาการสุนัข 10 วัน ถ้าป่วย/ตาย ให้กลับมารักษาทันที<br>
+<span class="radio-box-icon ${ck(r.treatment_order,'ให้ครบ 4 หรือ 5')}"></span> ฉีดวัคซีนให้ครบ 4/5 เข็ม พร้อมสังเกตอาการ 10 วันหลังถูกกัด หากสัตว์ตาย/ผิดปกติ ให้รายงานแพทย์<br>
+<span class="radio-box-icon ${ck(r.treatment_order,'ให้ครบ 3 เข็ม')}"></span> ฉีดวัคซีนให้ครบ 3 เข็ม พร้อมสังเกตอาการ 10 วัน หากปกติไม่ต้องฉีดเข็ม 4,5<br>
+<span class="radio-box-icon ${ck(r.treatment_order,'ฉีดกระตุ้นในผู้ที่เคยได้รับ')}"></span> ฉีดกระตุ้นในผู้ที่เคยได้รับวัคซีนครบชุดมาก่อน(Booster Immunization)
+</div>
+</div>
+<div class="flex gap-4 px-1 mb-1 text-[11px]">
+<div class="w-1/2">
+<b>5.1 การฉีด RIG:</b>
+<span class="radio-box-icon ${rb(r.rig_given,'ไม่ฉีด')}"></span>ไม่ฉีด
+<span class="radio-box-icon ${rb(r.rig_given,'ฉีด')}"></span>ฉีด <br>
+<div class="pl-2 mt-1 border border-gray-400 p-1 rounded inline-block w-full text-[10px] bg-gray-50">
+ERIG Lot: <span class="border-b border-gray-400 w-[55px] inline-block">${r.erig_no||''}</span>
+Exp: <span class="border-b border-gray-400 w-[55px] inline-block">${r.erig_exp||''}</span><br>
+นน.: <span class="border-b border-gray-400 w-[35px] inline-block mt-0.5">${r.erig_weight||''}</span> Kg.
+IU: <span class="border-b border-gray-400 w-[55px] inline-block mt-0.5">${r.erig_iu||''}</span>
+</div>
+</div>
+<div class="w-1/2">
+<b>5.2 PCEC/Verorab:</b>
+<span class="radio-box-icon ${rb(r.vaccine_route,'ไม่ฉีด')}"></span>ไม่ฉีด<br>
+<div class="pl-3 mt-1 leading-tight flex flex-col gap-1">
+<span><span class="radio-box-icon ${ck(r.vaccine_route,'IM')}"></span>เข้ากล้ามเนื้อ (IM 0.5 ml)</span>
+<span><span class="radio-box-icon ${ck(r.vaccine_route,'x 1 จุด')}"></span>เข้าผิวหนัง (ID 0.1 ml x 1 จุด)</span>
+<span><span class="radio-box-icon ${ck(r.vaccine_route,'x 2 จุด')}"></span>เข้าผิวหนัง (ID 0.1 ml x 2 จุด)</span>
+</div>
+</div>
+</div>
+
+<table class="print-table mt-2 w-full text-[11px]">
+<thead class="bg-gray-100">
+<tr>
+<th class="py-1 w-10">ครั้งที่</th>
+<th class="py-1 w-20">วันที่นัด/ฉีด</th>
+<th class="py-1">ชนิดวัคซีน</th>
+<th class="py-1">Lot.No</th>
+<th class="py-1">ขนาด</th>
+<th class="py-1">ชื่อผู้ฉีด</th>
+<th class="py-1">สถานที่ฉีด</th>
+</tr>
+</thead>
+<tbody>
+${[1,2,3,4,5].map(i => `
+<tr>
+<td class="text-center font-bold bg-gray-50 py-1">${i}</td>
+<td class="text-center py-1">${r[`vaccine_${i}_date`] ? r[`vaccine_${i}_date`].split('-').reverse().join('/') : '&nbsp;&nbsp;&nbsp;&nbsp;'}</td>
+<td class="text-center py-1">${r[`vaccine_${i}_type`] || ''}</td>
+<td class="text-center py-1">${r[`vaccine_${i}_lot`] || ''}</td>
+<td class="text-center py-1">${r[`vaccine_${i}_dose`] || ''}</td>
+<td class="py-1">${r[`vaccine_${i}_person`] || ''}</td>
+<td class="py-1">${r[`vaccine_${i}_place`] || ''}</td>
+</tr>`).join('')}
+</tbody>
+</table>
+
+<div class="mt-4 flex justify-between items-end px-12 text-[12px]">
+<div class="text-center">
+<div>ลงชื่อ ...................................................... แพทย์ผู้สั่ง</div>
+<div class="mt-1">( ${r.doctor_name || '......................................................'} )</div>
+</div>
+<div class="text-center">
+<div>ลงชื่อ ...................................................... ผู้รายงาน</div>
+<div class="mt-1">( ${r.reporter_name || '......................................................'} )</div>
+<div class="mt-1">วันที่รายงาน: ${r.report_date ? r.report_date.split('-').reverse().join('/') : '......./......./.......'}</div>
+</div>
+</div>
+`;
+document.getElementById('panel-print-container').classList.remove('hidden');
+
+// CRITICAL FIX: Ensure Lucide icons inside the newly generated HTML are rendered
+lucide.createIcons();
+}
+
+function triggerPrint() {
+setTimeout(function() {
+try {
+window.print();
+} catch(e) {
+showMessage('ไม่สามารถเปิดหน้าต่างพิมพ์ได้ กรุณาเปิดไฟล์นี้บนเบราว์เซอร์ของคุณโดยตรง', 'error');
+}
+}, 300);
+}
+
+function closePrintPreview() {
+document.getElementById('panel-print-container').classList.add('hidden');
+document.getElementById('panel-search').classList.remove('hidden');
+}
+
+function showMessage(text, type) {
+var el = document.getElementById('form-message');
+el.textContent = text;
+el.className = 'mt-2 p-3 rounded-lg text-sm font-semibold ' +
+(type==='success' ? 'bg-green-100 text-green-800 border border-green-200' :
+type==='error' ? 'bg-red-100 text-red-800 border border-red-200' :
+'bg-blue-100 text-blue-800 border border-blue-200');
+el.classList.remove('hidden');
+setTimeout(function() { el.classList.add('hidden'); }, 5000);
+}
+
+window.onload = function() {
+    lucide.createIcons(); // โหลดไอคอนสำหรับหน้า Login ก่อน
+    // ตรวจสอบสถานะการเข้าสู่ระบบ
+    if(sessionStorage.getItem('rabies_logged_in') === 'true') {
+        document.getElementById('login-panel').classList.add('hidden');
+        document.getElementById('main-app').classList.remove('hidden');
+        initApp(); // โหลดแอปหลักถ้าล็อกอินแล้ว
+    }
+}
+</script>
+</body>
+</html>
