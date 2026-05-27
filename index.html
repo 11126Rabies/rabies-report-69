@@ -969,6 +969,25 @@ if (!document.getElementById('f-full_name').value.trim()) {
 showMessage('กรุณากรอกชื่อ-สกุล', 'error'); return;
 }
 
+// --- เพิ่มระบบป้องกันเลข Case ซ้ำซ้อน ---
+var currentCaseNo = document.getElementById('f-case_no').value.trim();
+if (currentCaseNo) {
+    var isDuplicate = allRecords.some(function(r) {
+        // หากเป็นการแก้ไขข้อมูล ให้ข้ามการตรวจซ้ำกับเรคคอร์ดตัวเอง
+        if (editingRecord && r.__backendId === editingRecord.__backendId) {
+            return false;
+        }
+        return r.case_no === currentCaseNo;
+    });
+
+    if (isDuplicate) {
+        showMessage('เลขที่ Case นี้มีอยู่ในระบบแล้ว กรุณาเปลี่ยนเลขที่ Case ใหม่', 'error');
+        document.getElementById('f-case_no').focus(); // นำเคอร์เซอร์ไปชี้ที่ช่องเลข Case ให้ทันที
+        return; // หยุดการบันทึกข้อมูล
+    }
+}
+// ------------------------------------
+
 const url = window.dataSdk.getUrl();
 if (!url) {
     showMessage('กรุณาตั้งค่า Web App URL ที่แท็บตารางข้อมูลก่อน', 'error');
