@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ระบบบันทึกผู้สัมผัสโรคพิษสุนัขบ้า รพ.แม่อาย (Cloud Sync v7.0)</title>
+<title>ระบบบันทึกผู้สัมผัสโรคพิษสุนัขบ้า รพ.แม่อาย (Cloud Sync v7.6)</title>
 <!-- Loading Tailwind CSS, Lucide Icons, and SheetJS (XLSX) -->
 <script src="https://cdn.tailwindcss.com/3.4.17"></script>
 <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
@@ -116,7 +116,7 @@ main { padding: 0 !important; margin: 0 !important; max-width: none !important; 
             </button>
         </form>
         <div class="mt-6 border-t border-gray-100 pt-4 text-center">
-            <p class="text-[10px] text-gray-400">© 2026 กลุ่มงานควบคุมโรค โรงพยาบาลแม่อาย (Cloud Sync v7.0)</p>
+            <p class="text-[10px] text-gray-400">© 2026 กลุ่มงานควบคุมโรค โรงพยาบาลแม่อาย (Cloud Sync v7.6)</p>
         </div>
     </div>
 </div>
@@ -129,7 +129,7 @@ main { padding: 0 !important; margin: 0 !important; max-width: none !important; 
         <p class="text-teal-100 text-sm mt-1 flex items-center justify-center gap-2">
             โรงพยาบาลแม่อาย จังหวัดเชียงใหม่ 
             <span class="bg-teal-800 text-teal-100 text-[10px] px-2 py-0.5 rounded-full flex items-center gap-1 border border-teal-500/50" title="ดึงข้อมูลจาก Google Sheets เสมอ">
-                <i data-lucide="cloud" class="w-3 h-3"></i> ระบบคลาวด์
+                <i data-lucide="cloud" class="w-3 h-3"></i> ระบบคลาวด์ v7.6
             </span>
         </p>
         <!-- Logout Button -->
@@ -721,6 +721,7 @@ const allFields = [
 'close_case_3dose','animal_condition','doctor_name','reporter_name','report_date','status'
 ];
 
+// ตั้งค่าหัวตารางเริ่มต้นให้ตรงกับ Google Sheets ของเวอร์ชันก่อนหน้า
 const fieldLabels = {
 case_no: "เลขที่ Case", register_date: "วันที่ลงทะเบียน", id_card: "เลขประจำตัวประชาชน", nationality: "สัญชาติ", hn: "HN (รหัสผู้ป่วย)",
 full_name: "ชื่อ-สกุล", age: "อายุ (ปี)", gender: "เพศ", marital_status: "สถานภาพ", occupation: "อาชีพ", guardian_occupation: "อาชีพผู้ปกครอง (ถ้ามี)", phone: "เบอร์โทรศัพท์", address: "ที่อยู่ปัจจุบัน",
@@ -743,6 +744,9 @@ for (let k in fieldLabels) {
 }
 reverseFieldLabels["รหัสเคสระบบ (ID)"] = "__backendId";
 
+// ตัวแปรเก็บชื่อคอลัมน์ของจริงใน Sheet 
+let dynamicHeaderMap = {};
+
 window.dataSdk = {
     getUrl: function() {
         return localStorage.getItem('gs_webhook_url');
@@ -756,10 +760,13 @@ window.dataSdk = {
         }
         try {
             document.getElementById('sync-btn').innerHTML = '<div class="spinner w-3 h-3"></div> กำลังโหลด...';
-            // โหลดข้อมูลด้วย GET request ไปที่ Apps Script (doGet)
+            // โหลดข้อมูลด้วย GET request
             const response = await fetch(url);
             const rawData = await response.json();
             
+            // รีเซ็ตการจดจำชื่อคอลัมน์
+            dynamicHeaderMap = {};
+
             // แปลงข้อมูลจากภาษาไทยกลับเป็นคีย์ภายในระบบ HTML
             let data = rawData.map(row => {
                 let internalRow = {};
@@ -767,15 +774,19 @@ window.dataSdk = {
                     let cleanKey = thKey.trim();
                     let enKey = reverseFieldLabels[cleanKey];
                     
-                    // ระบบช่วยเดาคำ (Fuzzy Match) ป้องกันกรณีหัวตารางใน Sheet ไม่ตรงเป๊ะๆ
+                    // ระบบช่วยเดาคำ (Fuzzy Match) ป้องกันกรณีหัวตารางใน Sheet พิมพ์ไม่ตรงกับโค้ด
                     if (!enKey) {
                         if (cleanKey.includes("4.3") && cleanKey.includes("ประวัติ")) enKey = "prev_vaccine_history";
-                        else if (cleanKey.includes("ERIG Lot") || cleanKey.includes("ERIG No")) enKey = "erig_no";
-                        else if (cleanKey.includes("Exp")) enKey = "erig_exp";
-                        else if (cleanKey.includes("IU") || cleanKey.includes("จำนวนที่ฉีด")) enKey = "erig_iu";
+                        else if (cleanKey.includes("ERIG") && (cleanKey.includes("Lot") || cleanKey.includes("No"))) enKey = "erig_no";
+                        else if (cleanKey.toLowerCase().includes("exp")) enKey = "erig_exp";
+                        else if (cleanKey.includes("IU") || cleanKey.includes("จำนวน")) enKey = "erig_iu";
+                        else if (cleanKey.includes("นน.") || cleanKey.includes("น้ำหนัก") || cleanKey.includes("Kg")) enKey = "erig_weight";
                     }
 
                     if (enKey) {
+                        // จดจำชื่อหัวตารางของจริงที่ได้จาก Sheet!
+                        dynamicHeaderMap[enKey] = thKey;
+
                         let val = row[thKey];
                         // จัดการ format วันที่ (บางครั้ง Apps script คืนค่ามาเป็น format ยาวๆ)
                         if(typeof val === 'string' && val.match(/^\d{4}-\d{2}-\d{2}T/)){
@@ -813,7 +824,11 @@ window.dataSdk = {
         
         record.__backendId = 'rec_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
         const translatedRecord = {};
-        allFields.forEach(f => { const label = fieldLabels[f] || f; translatedRecord[label] = record[f] != null ? record[f] : ''; });
+        allFields.forEach(f => { 
+            // ใช้ชื่อหัวตารางของจริงจาก Sheet ถ้าไม่มีให้ใช้ค่าเริ่มต้น
+            const label = dynamicHeaderMap[f] || fieldLabels[f] || f; 
+            translatedRecord[label] = record[f] != null ? record[f] : ''; 
+        });
         translatedRecord["รหัสเคสระบบ (ID)"] = record.__backendId;
         
         try {
@@ -830,7 +845,11 @@ window.dataSdk = {
         if (!url) return {isOk:false};
         
         const translatedRecord = {};
-        allFields.forEach(f => { const label = fieldLabels[f] || f; translatedRecord[label] = record[f] != null ? record[f] : ''; });
+        allFields.forEach(f => { 
+            // ใช้ชื่อหัวตารางของจริงจาก Sheet เสมอ!
+            const label = dynamicHeaderMap[f] || fieldLabels[f] || f; 
+            translatedRecord[label] = record[f] != null ? record[f] : ''; 
+        });
         translatedRecord["รหัสเคสระบบ (ID)"] = record.__backendId;
         
         try {
@@ -898,7 +917,7 @@ if (!document.getElementById('panel-dashboard').classList.contains('hidden')) up
 };
 
 async function forceSync() {
-    document.getElementById('sync-btn').innerHTML = '<div class="spinner w-3 h-3"></div> กำลังโหลด...';
+    document.getElementById('sync-btn').innerHTML = '<div class="spinner w-3 h-3 border-[2px]"></div> กำลังโหลด...';
     await window.dataSdk.init(dataHandler);
 }
 
@@ -969,20 +988,33 @@ if (!document.getElementById('f-full_name').value.trim()) {
 showMessage('กรุณากรอกชื่อ-สกุล', 'error'); return;
 }
 
-// --- เพิ่มระบบป้องกันเลข Case ซ้ำซ้อน ---
+// --- เพิ่มระบบป้องกันเลข Case ซ้ำซ้อน (เวอร์ชันแก้ปัญหาบั๊ก 100%) ---
 var currentCaseNo = document.getElementById('f-case_no').value.trim();
 if (currentCaseNo) {
     var isDuplicate = allRecords.some(function(r) {
-        // หากเป็นการแก้ไขข้อมูล ให้ข้ามการตรวจซ้ำกับเรคคอร์ดตัวเอง
+        // 1. ถ้ากำลังแก้ไขเคสเดิม ให้ "ข้าม" การตรวจสอบตัวเองไปเลยทันที (อ้างอิงจาก ID หลังบ้าน)
         if (editingRecord && r.__backendId === editingRecord.__backendId) {
             return false;
         }
-        return r.case_no === currentCaseNo;
+        // 2. ถ้าเป็นเรคคอร์ดอื่นๆ เอาเลขเคสมาตัดช่องว่างและเทียบกัน
+        var existingCaseNo = String(r.case_no || '').trim().toLowerCase();
+        return existingCaseNo === currentCaseNo.toLowerCase();
     });
 
     if (isDuplicate) {
+        var caseInput = document.getElementById('f-case_no');
+        caseInput.focus(); // นำเคอร์เซอร์ไปชี้ที่ช่องเลข Case ให้ทันที
+        
+        // แสดง Popup Error ชี้ตรงช่องกรอก (Browser Built-in UI)
+        caseInput.setCustomValidity('เลขที่ Case นี้มีอยู่ในระบบแล้ว กรุณาเปลี่ยนใหม่');
+        caseInput.reportValidity();
+        
+        // ล้างแจ้งเตือนเมื่อผู้ใช้เริ่มพิมพ์แก้ไข
+        caseInput.addEventListener('input', function() {
+            caseInput.setCustomValidity('');
+        }, { once: true });
+
         showMessage('เลขที่ Case นี้มีอยู่ในระบบแล้ว กรุณาเปลี่ยนเลขที่ Case ใหม่', 'error');
-        document.getElementById('f-case_no').focus(); // นำเคอร์เซอร์ไปชี้ที่ช่องเลข Case ให้ทันที
         return; // หยุดการบันทึกข้อมูล
     }
 }
@@ -1689,12 +1721,17 @@ document.getElementById('panel-search').classList.remove('hidden');
 
 function showMessage(text, type) {
 var el = document.getElementById('form-message');
-el.textContent = text;
-el.className = 'mt-2 p-3 rounded-lg text-sm font-semibold ' +
-(type==='success' ? 'bg-green-100 text-green-800 border border-green-200' :
-type==='error' ? 'bg-red-100 text-red-800 border border-red-200' :
-'bg-blue-100 text-blue-800 border border-blue-200');
+// เพิ่มไอคอนให้ดูน่าสนใจขึ้น
+el.innerHTML = `<div class="flex items-center gap-2"><i data-lucide="${type==='success' ? 'check-circle' : type==='error' ? 'alert-triangle' : 'info'}" class="w-5 h-5"></i><span>${text}</span></div>`;
+
+// ปรับให้เป็น Toast Message แบบลอย (Fixed) ตรงกลางด้านบนจอ จะได้เห็นเสมอแม้เคอร์เซอร์เลื่อนไปบนสุด
+el.className = 'fixed top-10 left-1/2 transform -translate-x-1/2 z-[9999] px-6 py-3 rounded-xl text-sm font-bold shadow-2xl border transition-all ' +
+(type==='success' ? 'bg-green-100 text-green-800 border-green-300' :
+type==='error' ? 'bg-red-100 text-red-800 border-red-300' :
+'bg-blue-100 text-blue-800 border-blue-300');
+
 el.classList.remove('hidden');
+lucide.createIcons(); // โหลดไอคอนใหม่
 setTimeout(function() { el.classList.add('hidden'); }, 5000);
 }
 
