@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ระบบบันทึกผู้สัมผัสโรคพิษสุนัขบ้า รพ.แม่อาย (Cloud Sync v7.6.2)</title>
+<title>ระบบบันทึกผู้สัมผัสโรคพิษสุนัขบ้า รพ.แม่อาย (Cloud Sync v7.6)</title>
 <!-- Loading Tailwind CSS, Lucide Icons, and SheetJS (XLSX) -->
 <script src="https://cdn.tailwindcss.com/3.4.17"></script>
 <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
@@ -1798,7 +1798,7 @@ ${[1,2,3,4,5].map(i => `
 </div>
 </div>
 `;
-document.getElementById('panel-print-container').remove('hidden');
+document.getElementById('panel-print-container').classList.remove('hidden');
 
 // CRITICAL FIX: Ensure Lucide icons inside the newly generated HTML are rendered
 lucide.createIcons();
