@@ -291,27 +291,36 @@ main { padding: 0 !important; margin: 0 !important; max-width: none !important; 
         
         <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-200">
         <h3 class="font-bold mb-4 text-gray-700 text-sm flex items-center gap-1">
+            <i data-lucide="syringe" class="w-4 h-4 text-teal-600"></i> ประวัติวัคซีนสัตว์ที่สัมผัส
+        </h3>
+        <div id="chart-animal-vaccine" class="space-y-3"></div>
+        </div>
+    </div>
+
+    <!-- CHARTS -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-200">
+        <h3 class="font-bold mb-4 text-gray-700 text-sm flex items-center gap-1">
+        <i data-lucide="paw-print" class="w-4 h-4 text-teal-600"></i> สัดส่วนชนิดสัตว์นำโรค
+        </h3>
+        <div id="chart-animal" class="space-y-3"></div>
+        </div>
+        
+        <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-200">
+        <h3 class="font-bold mb-4 text-gray-700 text-sm flex items-center gap-1">
+        <i data-lucide="activity" class="w-4 h-4 text-teal-600"></i> ตำแหน่งที่ถูกกัด/สัมผัสโรค
+        </h3>
+        <div id="chart-location" class="space-y-3"></div>
+        </div>
+
+        <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-200">
+        <h3 class="font-bold mb-4 text-gray-700 text-sm flex items-center gap-1">
             <i data-lucide="alert-octagon" class="w-4 h-4 text-teal-600"></i> สาเหตุที่ถูกกัด (เหตุจูงใจ)
         </h3>
         <div id="chart-bite-cause" class="space-y-3"></div>
         </div>
     </div>
 
-    <!-- CHARTS -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-    <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-200">
-    <h3 class="font-bold mb-4 text-gray-700 text-sm flex items-center gap-1">
-    <i data-lucide="paw-print" class="w-4 h-4 text-teal-600"></i> สัดส่วนชนิดสัตว์นำโรค
-    </h3>
-    <div id="chart-animal" class="space-y-3"></div>
-    </div>
-    <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-200">
-    <h3 class="font-bold mb-4 text-gray-700 text-sm flex items-center gap-1">
-    <i data-lucide="activity" class="w-4 h-4 text-teal-600"></i> ตำแหน่งที่ถูกกัด/สัมผัสโรค
-    </h3>
-    <div id="chart-location" class="space-y-3"></div>
-    </div>
-    </div>
     <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-200">
     <h3 class="font-bold mb-4 text-gray-700 text-sm flex items-center gap-1">
     <i data-lucide="trending-up" class="w-4 h-4 text-teal-600"></i> แนวโน้มผู้สัมผัสรายเดือน
