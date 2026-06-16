@@ -1178,15 +1178,36 @@ var filteredRecords = selectedYear === 'all'
     ? allRecords 
     : allRecords.filter(r => r.register_date && r.register_date.startsWith(selectedYear));
 
-document.getElementById('stat-total-val').textContent = filteredRecords.length;
-document.getElementById('stat-male-val').textContent = filteredRecords.filter(r => r.gender === 'ชาย').length;
-document.getElementById('stat-female-val').textContent = filteredRecords.filter(r => r.gender === 'หญิง').length;
-document.getElementById('stat-rig-val').textContent = filteredRecords.filter(r => r.rig_given === 'ฉีด').length;
+var total = filteredRecords.length;
+var totalDiv = total === 0 ? 1 : total; // ป้องกันการหารด้วย 0
+
+var maleCount = filteredRecords.filter(r => r.gender === 'ชาย').length;
+var femaleCount = filteredRecords.filter(r => r.gender === 'หญิง').length;
+var rigCount = filteredRecords.filter(r => r.rig_given === 'ฉีด').length;
+var activeCount = filteredRecords.filter(r => r.status === 'กำลังรักษา').length;
+var completedCount = filteredRecords.filter(r => r.status === 'ครบกำหนด' || r.status === 'ครบกำหนดการรักษา').length;
+var missedCount = filteredRecords.filter(r => r.status === 'ขาดนัด' || r.status === 'ขาดนัดฉีดวัคซีน').length;
+
+document.getElementById('stat-total-val').textContent = total;
+
+document.getElementById('stat-male-val').textContent = maleCount;
+document.getElementById('stat-male-pct').textContent = `(${((maleCount/totalDiv)*100).toFixed(1)}%)`;
+
+document.getElementById('stat-female-val').textContent = femaleCount;
+document.getElementById('stat-female-pct').textContent = `(${((femaleCount/totalDiv)*100).toFixed(1)}%)`;
+
+document.getElementById('stat-rig-val').textContent = rigCount;
+document.getElementById('stat-rig-pct').textContent = `(${((rigCount/totalDiv)*100).toFixed(1)}%)`;
 
 // เพิ่มข้อมูลสถานะผู้ป่วย
-document.getElementById('stat-status-active').textContent = filteredRecords.filter(r => r.status === 'กำลังรักษา').length;
-document.getElementById('stat-status-completed').textContent = filteredRecords.filter(r => r.status === 'ครบกำหนด' || r.status === 'ครบกำหนดการรักษา').length;
-document.getElementById('stat-status-missed').textContent = filteredRecords.filter(r => r.status === 'ขาดนัด' || r.status === 'ขาดนัดฉีดวัคซีน').length;
+document.getElementById('stat-status-active').textContent = activeCount;
+document.getElementById('stat-status-active-pct').textContent = `(${((activeCount/totalDiv)*100).toFixed(1)}%)`;
+
+document.getElementById('stat-status-completed').textContent = completedCount;
+document.getElementById('stat-status-completed-pct').textContent = `(${((completedCount/totalDiv)*100).toFixed(1)}%)`;
+
+document.getElementById('stat-status-missed').textContent = missedCount;
+document.getElementById('stat-status-missed-pct').textContent = `(${((missedCount/totalDiv)*100).toFixed(1)}%)`;
 
 // สร้างกราฟและรายการสถิติใหม่
 renderBarChart('chart-animal', 'animal_type', filteredRecords); 
