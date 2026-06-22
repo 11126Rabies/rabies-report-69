@@ -641,7 +641,7 @@ main { padding: 0 !important; margin: 0 !important; max-width: none !important; 
     <h2 class="font-bold text-gray-800 text-lg flex items-center gap-2">
     <i data-lucide="spreadsheet" class="w-5 h-5 text-teal-600"></i> แผ่นตารางงานประวัติผู้สัมผัสโรค
     </h2>
-    <p class="text-xs text-gray-500 mt-1">ตารางข้อมูลทั้งหมดที่ดึงมาจาก Google Sheets คลาวด์ล่าสุด (เรียงตามลำดับจากน้อยไปมาก)</p>
+    <p class="text-xs text-gray-500 mt-1">ตารางข้อมูลทั้งหมดที่ดึงมาจาก Google Sheets คลาวด์ล่าสุด (เรียงเคสล่าสุดขึ้นก่อน)</p>
     </div>
     <div class="flex flex-wrap gap-2">
     <button onclick="exportExcel()" class="bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition-all flex items-center gap-1.5 text-sm font-semibold shadow">
@@ -944,7 +944,7 @@ const dataHandler = {
 onDataChanged(data) {
 allRecords = data || [];
 
-// 💡 เรียงลำดับข้อมูลตาม 'เลขที่ Case' (น้อยไปมาก) อัตโนมัติทุกครั้งที่ดึงหรือบันทึกข้อมูล
+// 💡 เรียงลำดับข้อมูลตาม 'เลขที่ Case' (มากไปน้อย / ล่าสุดขึ้นก่อน) อัตโนมัติทุกครั้งที่ดึงหรือบันทึกข้อมูล
 allRecords.sort((a, b) => {
     let valA = String(a.case_no || '').trim();
     let valB = String(b.case_no || '').trim();
@@ -958,16 +958,16 @@ allRecords.sort((a, b) => {
     let numB = parseInt(partsB[0]) || 0;
     let yearB = parseInt(partsB[1]) || 0;
     
-    // เปรียบเทียบปี (น้อยไปมาก)
+    // เปรียบเทียบปี (มากไปน้อย)
     if (yearA !== yearB) {
-        return yearA - yearB;
+        return yearB - yearA;
     }
-    // ถ้าปีเท่ากัน เปรียบเทียบเลขลำดับ (น้อยไปมาก)
+    // ถ้าปีเท่ากัน เปรียบเทียบเลขลำดับ (มากไปน้อย)
     if (numA !== numB) {
-        return numA - numB;
+        return numB - numA;
     }
-    // ถ้ารูปแบบไม่ใช่ตัวเลข/ปี ให้เรียงตามตัวอักษรปกติ
-    return valA.localeCompare(valB);
+    // ถ้ารูปแบบไม่ใช่ตัวเลข/ปี ให้เรียงตามตัวอักษรปกติ (ย้อนกลับ)
+    return valB.localeCompare(valA);
 });
 
 if (!document.getElementById('panel-search').classList.contains('hidden')) performSearch();
